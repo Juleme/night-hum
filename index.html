@@ -31,6 +31,7 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--blue); }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   color: var(--paper);
   font-family: "NH Grotesk", system-ui, sans-serif;
@@ -357,6 +358,8 @@ const Pitch = (() => {
     let bad = 0;
     let voiced = false;
     const recent = [];
+    // A frame counts as a hum only above this loudness.
+    const gateNow = () => Math.max(4 * floor, 0.12 * ref, o.gateFloor);
 
     return {
       setRange(lo, hi) {
@@ -371,6 +374,10 @@ const Pitch = (() => {
 
       get noiseFloor() {
         return floor;
+      },
+
+      get gate() {
+        return gateNow();
       },
 
       push(samples, sampleRate) {
@@ -391,8 +398,7 @@ const Pitch = (() => {
         // raise its own gate. It drops fast and rises slowly.
         if (r.clarity < 0.5) floor += (r.rms - floor) * (r.rms < floor ? 0.3 : 0.02);
 
-        const gate = Math.max(4 * floor, 0.12 * ref, o.gateFloor);
-        if (r.freq > 0 && r.clarity >= o.clarityMin && r.rms >= gate) {
+        if (r.freq > 0 && r.clarity >= o.clarityMin && r.rms >= gateNow()) {
           good += 1;
           bad = 0;
           recent.push(r.freq);
@@ -450,6 +456,23 @@ const Notes = (() => {
   // neck is moved in by octaves; one already inside stays where it is.
   const fold = (f, home) => wrap(st(f, home), AXIS_LO, AXIS_HI);
 
+  // The same note, in whichever octave on the neck is nearest to `near`.
+  // A phone mic can lose the low part of a hum, and the pitch then reads an
+  // octave up for a moment. The light should stay where it was.
+  const nearOctave = (s, near) => {
+    let best = s;
+    let bestDist = Math.abs(s - near);
+    for (const c of [s - 12, s + 12]) {
+      if (c < AXIS_LO - EPS || c >= AXIS_HI - EPS) continue;
+      const d = Math.abs(c - near);
+      if (d < bestDist) {
+        bestDist = d;
+        best = c;
+      }
+    }
+    return best;
+  };
+
   const axisT = (s) => (s - AXIS_LO) / (AXIS_HI - AXIS_LO);
 
   const pc = (offset) => ((offset % 12) + 12) % 12;
@@ -498,18 +521,24 @@ const Notes = (() => {
     const HOLD = 1.2;
     const SPREAD = 2;
     let clock = 0;
-    let run = [];
+    let since = null;   // when the current unbroken hum began
+    let run = [];       // its last HOLD seconds
 
     return {
       push(dt, voiced, f, level) {
         clock += dt;
         if (!voiced || !(f > 0)) {
           run = [];
+          since = null;
           return null;
         }
+        if (since === null) since = clock;
         run.push({ t: clock, f, level });
-        while (clock - run[0].t > HOLD + 1e-6) run.shift();
-        if (clock - run[0].t < HOLD - 1e-6) return null;
+        // The length of the hum is measured from its start, not from whichever
+        // sample happens to be oldest. Frames arrive at any spacing, and
+        // waiting for one to land exactly HOLD seconds back would never end.
+        while (clock - run[0].t > HOLD + 1e-9) run.shift();
+        if (clock - since < HOLD - 1e-9) return null;
 
         let lo = Infinity;
         let hi = -Infinity;
@@ -528,7 +557,7 @@ const Notes = (() => {
 
   return {
     AXIS_LO, AXIS_HI, GIRAFFE_HZ, ORDER,
-    st, freq, fold, axisT, pc, onBand, rings, nearestRing, giraffeOffset, ratio, bowlHz, createHomeCapture,
+    st, freq, fold, nearOctave, axisT, pc, onBand, rings, nearestRing, giraffeOffset, ratio, bowlHz, createHomeCapture,
   };
 })();
 
@@ -728,9 +757,12 @@ const Game = (() => {
 
       if (voiced) {
         if (runLen === 0) runStart = input.freq;
+        const heard = Notes.fold(input.freq, g.home || runStart);
+        // Within one hum the light keeps to its octave, so a pitch that reads
+        // an octave off for a moment does not throw it across the neck.
+        g.light.st = runLen > 0 ? Notes.nearOctave(heard, g.light.st) : heard;
         runLen += dt;
         g.light.on = true;
-        g.light.st = Notes.fold(input.freq, g.home || runStart);
       } else {
         g.light.on = false;
       }
@@ -780,6 +812,7 @@ const Sound = (() => {
   const TAUS = [7.5, 3.6, 1.9, 1.0, 0.55];
   const SPLIT = [0.8, 1.8, 2.8, 3.8, 4.6];
   const BOWL_GAIN = 0.34;
+  const WET = 0.32;       // how much of the room the bowls ring in
   const NIGHT_GAIN = 1;   // the night bed is a quiet recording: about -39 dBFS at this gain
 
   // The sunrise is in the giraffe's own key: hum A sits on F#2, hum B around A2.
@@ -788,6 +821,8 @@ const Sound = (() => {
   let ctx = null;
   let master = null;
   let bus = null;        // bowls, the real hum and the touch hum; feeds the reverb too
+  let wet = null;        // the reverb's return
+  const voices = new Set(); // every bowl or hum that is still sounding
   let speakers = null;   // last gain before the output, for muting
   let sink = null;       // silent path that keeps analysers running in every browser
   let meter = null;
@@ -842,9 +877,33 @@ const Sound = (() => {
     return buf;
   };
 
+  // On an iPhone, sound made without the mic obeys the ring/silent switch
+  // unless the page says it is here to play audio ('playback'). With the mic
+  // open the phone runs the session itself, so that case is left on 'auto'.
+  const session = (type) => {
+    try {
+      if (navigator.audioSession) navigator.audioSession.type = type;
+    } catch (err) {
+      // Older Safari has no audio session to set.
+    }
+  };
+
+  // iPhones pause the audio context when the mic starts, a call comes in or
+  // the page is put away. While it is paused the mic reads silence and nothing
+  // plays.
+  const asleep = () => !!ctx && ctx.state !== 'running';
+
+  // A resume that still needs a tap never settles, so this does not wait on it.
+  const wake = () => {
+    if (!ctx || ctx.state === 'running') return Promise.resolve();
+    return Promise.race([ctx.resume().catch(() => {}), new Promise((done) => setTimeout(done, 400))]);
+  };
+
   // Creates the audio context. Call it from inside a tap or a key press.
+  // The promise never waits long: on a phone the first resume can hang, and
+  // the game must still start.
   const init = () => {
-    if (ctx) return ctx.resume();
+    if (ctx) return wake();
     const AC = window.AudioContext || window.webkitAudioContext;
     ctx = new AC({ latencyHint: 'interactive' });
 
@@ -863,8 +922,8 @@ const Sound = (() => {
 
     const reverb = ctx.createConvolver();
     reverb.buffer = makeImpulse(2.8);
-    const wet = ctx.createGain();
-    wet.gain.value = 0.32;
+    wet = ctx.createGain();
+    wet.gain.value = WET;
     bus = ctx.createGain();
     bus.connect(master);
     bus.connect(reverb);
@@ -884,7 +943,7 @@ const Sound = (() => {
     api.loaded = Promise.all(Object.keys(ASSETS).map((k) => decode(ASSETS[k]).then((b) => { samples[k] = b; })));
     api.loaded.catch(() => {});
     GIRAFFE_BOWLS.forEach((hz, i) => queueBowl(`hz:${hz}`, hz, 8, 40 + i));
-    return ctx.resume();
+    return wake();
   };
 
   // Opens the mic. Resolves false when there is none or it is refused.
@@ -913,6 +972,8 @@ const Sound = (() => {
       } catch (err) {
         return false;
       }
+      // Starting the mic is exactly when an iPhone pauses the context.
+      await wake();
       source = ctx.createMediaStreamSource(micStream);
     }
     micSource = source;
@@ -1116,6 +1177,38 @@ const Sound = (() => {
     src.connect(g);
     g.connect(bus);
     src.start(ctx.currentTime + delay);
+    keep(src);
+  };
+
+  const keep = (src) => {
+    voices.add(src);
+    src.onended = () => voices.delete(src);
+  };
+
+  // Stops everything that is still ringing, so a new night starts from
+  // silence. Without this the mic can take the last chord for the first hum.
+  const hush = () => {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    for (const node of [bus, wet]) {
+      node.gain.cancelScheduledValues(t);
+      node.gain.setTargetAtTime(0, t, 0.04);
+    }
+    const ringing = [...voices];
+    voices.clear();
+    setTimeout(() => {
+      for (const src of ringing) {
+        try {
+          src.stop();
+        } catch (err) {
+          // It had already ended.
+        }
+      }
+      const now = ctx.currentTime;
+      bus.gain.setTargetAtTime(1, now, 0.02);
+      // The room's own tail needs a couple of seconds to die before it comes back.
+      wet.gain.setTargetAtTime(WET, now + 2.6, 0.2);
+    }, 250);
   };
 
   // The herd answers a hum: one bowl each, rippling in the order they came home.
@@ -1185,6 +1278,7 @@ const Sound = (() => {
       src.buffer = buf;
       src.connect(out);
       src.start(when);
+      keep(src);
     };
     play(samples.humA, t0);
     play(samples.humB, t0 + 2.9);
@@ -1228,11 +1322,30 @@ const Sound = (() => {
     touch.g.gain.setTargetAtTime(on ? 0.2 : 0, t, 0.027);
   };
 
-  const resume = () => (ctx ? ctx.resume() : Promise.resolve());
+  // What the phone is actually doing, for the ?debug readout.
+  const debug = () => {
+    const track = micStream && micStream.getAudioTracks()[0];
+    const got = track && track.getSettings ? track.getSettings() : {};
+    return {
+      context: ctx ? ctx.state : 'none',
+      rate: ctx ? ctx.sampleRate : 0,
+      session: navigator.audioSession ? navigator.audioSession.type : 'n/a',
+      mic: !detect ? 'off' : api.fake ? 'stand-in' : track ? track.readyState + (track.muted ? ' muted' : '') : 'on',
+      echo: got.echoCancellation,
+      noise: got.noiseSuppression,
+      agc: got.autoGainControl,
+      micRate: got.sampleRate,
+      floor: tracker.noiseFloor,
+      gate: tracker.gate,
+    };
+  };
 
   const mute = (on) => {
     if (speakers) speakers.gain.value = on ? 0 : 1;
   };
+
+  // Pauses the context the way a phone does (tests).
+  const sleep = () => (ctx ? ctx.suspend() : Promise.resolve());
 
   // RMS of what is going to the speakers (tests).
   const outputLevel = () => {
@@ -1244,7 +1357,8 @@ const Sound = (() => {
   };
 
   return Object.assign(api, {
-    init, startMic, stopMic, read, harmonics, setHome, clearHome, strike, answer, startNight, stopNight, playGiraffe, touchHum, resume, mute, outputLevel,
+    init, startMic, stopMic, read, harmonics, setHome, clearHome, strike, answer, hush, startNight, stopNight, playGiraffe, touchHum,
+    session, asleep, wake, sleep, resume: wake, mute, outputLevel, debug,
     isReady: () => !!ctx,
     hasMic: () => !!detect,
     bowlCount: () => bowls.size,
@@ -1544,7 +1658,8 @@ const Art = (() => {
     const homeSpot = (i) => {
       const row = Math.floor(i / 4);
       const col = i % 4;
-      const y = (0.958 - row * 0.041) * h;
+      // Clear of the bottom edge, where a phone's browser bar can sit over the page.
+      const y = (0.905 - row * 0.038) * h;
       return { x: (0.47 + col * 0.128 + (row % 2) * 0.064) * s, y, height: calfHeight(y) };
     };
 
@@ -1680,11 +1795,21 @@ const Render = (() => {
     let calves = new Map();   // id -> { born, phase, last, stride, lit, blink }
     let glow = new Map();     // id -> the time its bowl rings
 
+    // Sizes everything from the canvas's own box, which is what the player
+    // sees. On a phone that box and the window do not always agree.
     const resize = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      while (w * h * dpr * dpr > 3.4e6 && dpr > 1) dpr -= 0.25;
+      const w = canvas.clientWidth || window.innerWidth;
+      const h = canvas.clientHeight || window.innerHeight;
+      let ratio = Math.min(window.devicePixelRatio || 1, 2);
+      while (w * h * ratio * ratio > 3.4e6 && ratio > 1) ratio -= 0.25;
+      if (scene && scene.w === w && scene.h === h && ratio === dpr) return;
+      dpr = ratio;
+      // Phones cap the memory all canvases share, and a dropped canvas is
+      // only freed later. Emptying the old layers frees them now.
+      if (scene) {
+        scene.lit.width = 0;
+        scene.night.width = 0;
+      }
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       work.width = canvas.width;
@@ -2120,10 +2245,11 @@ const Render = (() => {
   const params = new URLSearchParams(location.search);
   const fakeHz = Number(params.get('fakemic')) || null;
   const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  const SILENT = { voiced: false, freq: 0, level: 0 };
+  const SILENT = { voiced: false, freq: 0, level: 0, clarity: 0 };
   const SPAN = Notes.AXIS_HI - Notes.AXIS_LO;
 
-  const r = Render.create($('stage'));
+  const stage = $('stage');
+  const r = Render.create(stage);
   const rungs = new Float32Array(8);
   let mode = 'title';       // 'title' | 'mic' | 'touch'
   let game = null;
@@ -2134,6 +2260,9 @@ const Render = (() => {
   let override;             // a test can stand in for the hum
   let heard = false;        // has the mic heard a hum this night?
   let touched = false;
+  let deafUntil = 0;        // the mic is ignored until the last night's sound has died
+  let asleepFor = 0;        // how long the phone has had the sound paused
+  let lastError = '';
   const finger = { down: false, key: false, slide: 0, st: 0 };
 
   // Words on screen. Setting the same words again does nothing, so they do
@@ -2156,6 +2285,9 @@ const Render = (() => {
     finger.down = false;
     finger.key = false;
     finger.st = 0;
+    // Whatever is still ringing from the last night must not be heard as a hum.
+    Sound.hush();
+    deafUntil = clock + 0.7;
     if (how === 'mic') Sound.clearHome();
     $('title').hidden = true;
     $('end').hidden = true;
@@ -2171,6 +2303,7 @@ const Render = (() => {
     starting = true;
     let mic = false;
     try {
+      Sound.session(wantMic ? 'auto' : 'playback');
       const ready = Sound.init();
       if (params.has('mute')) Sound.mute(true);
       await ready;
@@ -2179,16 +2312,21 @@ const Render = (() => {
     } catch (err) {
       // No sound is not a reason to stop the game: it plays silently by touch.
     }
+    // Without the mic, an iPhone would mute the game with its ring/silent switch.
+    if (!mic) Sound.session('playback');
     starting = false;
     newNight(mic ? 'mic' : 'touch');
   };
 
   const readInput = (dt) => {
     if (override !== undefined) return override;
-    if (mode === 'mic') return Sound.read();
+    if (mode === 'mic') {
+      const now = Sound.read();
+      return clock < deafUntil ? SILENT : now;
+    }
     if (finger.key) finger.st = Util.clamp(finger.st + finger.slide * 6 * dt, Notes.AXIS_LO, Notes.AXIS_HI - 0.01);
     if (!finger.down && !finger.key) return SILENT;
-    return { voiced: true, freq: Notes.freq(finger.st, game.home), level: 0.1 };
+    return { voiced: true, freq: Notes.freq(finger.st, game.home), level: 0.1, clarity: 1 };
   };
 
   const showEnd = () => {
@@ -2237,6 +2375,19 @@ const Render = (() => {
   const step = (dt) => {
     clock += dt;
     if (!game) return;
+
+    // An iPhone can pause the sound, and the mic goes quiet with it. The night
+    // waits for a tap instead of running out unheard.
+    asleepFor = Sound.asleep() ? asleepFor + dt : 0;
+    if (mode === 'mic' && override === undefined && asleepFor > 0.5 && game.state !== 'end') {
+      Sound.wake();
+      say($('prompt'), 'Tap once to wake the sound.');
+      say($('sub'), '');
+      $('escape').hidden = true;
+      input = SILENT;
+      return;
+    }
+
     input = readInput(dt);
     if (input.voiced) heard = true;
     game.update(dt, input);
@@ -2252,18 +2403,56 @@ const Render = (() => {
     r.draw({ time: clock, game, harmonics: rungs, level: input.level, mode, reducedMotion: reduced });
   };
 
+  // ---- ?debug: what the device is actually doing, readable on the phone itself
+  let readout = null;
+  let frames = 0;
+  let fps = 0;
+  let fpsAt = 0;
+  if (params.has('debug')) {
+    readout = document.createElement('pre');
+    readout.id = 'debug';
+    readout.style.cssText = 'position:fixed;left:6px;top:calc(6px + env(safe-area-inset-top));margin:0;padding:6px 8px;z-index:9;'
+      + 'font:11px/1.4 ui-monospace,Menlo,monospace;color:#F2E8D5;background:rgba(20,28,74,.86);pointer-events:none;white-space:pre';
+    document.body.appendChild(readout);
+  }
+  const report = (now) => {
+    frames += 1;
+    if (now - fpsAt < 500) return;
+    fps = Math.round((frames * 1000) / (now - fpsAt));
+    frames = 0;
+    fpsAt = now;
+    const d = Sound.debug();
+    const yn = (v) => (v === undefined || v === null ? '?' : v ? 'on' : 'off');
+    readout.textContent = [
+      `${mode} | ${game ? game.state : 'title'} | ${fps} fps`,
+      `sound ${d.context} ${d.rate} Hz | session ${d.session}`,
+      `mic ${d.mic} | echo ${yn(d.echo)} noise ${yn(d.noise)} agc ${yn(d.agc)}${d.micRate ? ` | ${d.micRate} Hz` : ''}`,
+      `level ${input.level.toFixed(4)} | floor ${d.floor.toFixed(4)} | gate ${d.gate.toFixed(4)}`,
+      `clear ${(input.clarity || 0).toFixed(2)} | ${input.freq ? `${input.freq.toFixed(1)} Hz` : 'no pitch'} | ${input.voiced ? 'HUM' : 'quiet'}`,
+      `home ${game && game.home ? game.home.toFixed(1) : '-'} | canvas ${r.scene.w}x${r.scene.h} @${r.scene.dpr} | window ${window.innerWidth}x${window.innerHeight}`,
+      lastError ? `error: ${lastError}` : 'no errors',
+    ].join('\n');
+  };
+  window.addEventListener('error', (e) => {
+    lastError = `${e.message || 'error'}${e.lineno ? ` @${e.lineno}` : ''}`;
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    lastError = String((e.reason && e.reason.message) || e.reason || 'rejected promise');
+  });
+
   const frame = (now) => {
     requestAnimationFrame(frame);
     const dt = Util.clamp((now - lastFrame) / 1000, 0, 0.1);
     lastFrame = now;
     step(dt);
     render();
+    if (readout) report(now);
   };
 
   // ---- playing without a mic: a finger's height on the screen is the pitch
-  const stage = $('stage');
   const aim = (e) => {
-    finger.st = Math.min(Notes.AXIS_HI - 0.01, Notes.AXIS_LO + Art.touchT(r.scene, e.clientY) * SPAN);
+    const y = e.clientY - stage.getBoundingClientRect().top;
+    finger.st = Math.min(Notes.AXIS_HI - 0.01, Notes.AXIS_LO + Art.touchT(r.scene, y) * SPAN);
   };
   stage.addEventListener('pointerdown', (e) => {
     if (mode !== 'touch') return;
@@ -2308,13 +2497,32 @@ const Render = (() => {
   $('escape').addEventListener('click', () => begin(false));
   $('again').addEventListener('click', () => newNight(mode));
 
+  // Any tap or key wakes paused sound. A phone only allows that from a gesture.
+  for (const type of ['pointerdown', 'touchend', 'keydown']) {
+    document.addEventListener(type, () => {
+      if (Sound.asleep()) Sound.wake();
+    }, true);
+  }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
-    Sound.resume();
+    Sound.wake();
     lastFrame = performance.now();
   });
-  window.addEventListener('resize', () => r.resize());
-  window.addEventListener('orientationchange', () => r.resize());
+
+  // The scene and the words share one unit, s. A phone's browser bars resize
+  // the page in bursts, so the rebuild waits for them to settle.
+  const fit = () => {
+    r.resize();
+    document.documentElement.style.setProperty('--s', `${r.scene.s}px`);
+  };
+  let fitTimer = 0;
+  const refit = () => {
+    clearTimeout(fitTimer);
+    fitTimer = setTimeout(fit, 120);
+  };
+  window.addEventListener('resize', refit);
+  window.addEventListener('orientationchange', refit);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', refit);
 
   // ---- for tests
   window.__nighthum = {
@@ -2341,7 +2549,7 @@ const Render = (() => {
     },
     // hz above 0 hums, 0 is silence, null hands the input back to the mic or finger.
     feed(hz, level = 0.1) {
-      override = hz === null ? undefined : hz > 0 ? { voiced: true, freq: hz, level } : SILENT;
+      override = hz === null ? undefined : hz > 0 ? { voiced: true, freq: hz, level, clarity: 1 } : SILENT;
     },
     step(dt, n = 1) {
       for (let i = 0; i < n; i++) step(dt);
@@ -2350,10 +2558,11 @@ const Render = (() => {
     seed(n) {
       seed = n;
     },
+    fit,
   };
 
   r.seed = seed;
-  r.resize();
+  fit();
   lastFrame = performance.now();
   requestAnimationFrame(frame);
 })();
