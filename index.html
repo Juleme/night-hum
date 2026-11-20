@@ -106,18 +106,23 @@ button {
 
 /* A night's moon, as a mark beside its name. */
 .moon { flex: none; width: 1.2em; height: 1.2em; }
-/* Which night the start button plays. It opens the list of nights. */
-#tonight {
+/* Which night the start button plays, and in which sound and way. Each opens its list. */
+#tonight, #setup {
   display: flex;
   align-items: center;
   gap: 0.45em;
   margin-top: calc(var(--s) * 0.04);
   font-size: max(0.8rem, calc(var(--s) * 0.04));
 }
+#setup { margin-top: calc(var(--s) * 0.014); }
+/* On a short screen the title's last line would sit on the bottom edge. */
+@media (max-height: 600px) {
+  #title { top: 28%; }
+}
 
 /* The nine nights. On the title there is no herd, so the list can run down
    past the hills. On a screen too short for it, it scrolls. */
-#ui #nights {
+#ui #nights, #ui #options {
   top: 27.5%;
   bottom: 0.4rem;
   overflow-y: auto;
@@ -125,8 +130,8 @@ button {
   scrollbar-width: none;
   pointer-events: auto;
 }
-#nights::-webkit-scrollbar { display: none; }
-#nights-head {
+#nights::-webkit-scrollbar, #options::-webkit-scrollbar { display: none; }
+.head {
   margin-bottom: calc(var(--s) * 0.028);
   font-family: "NH Serif", Georgia, serif;
   font-weight: 400;
@@ -136,8 +141,11 @@ button {
   letter-spacing: -0.01em;
   color: var(--gold);
 }
-#night-list { list-style: none; margin: 0; padding: 0; }
-.night {
+/* The sound and the way share a screen, so their headings are smaller. */
+#options .head { margin-bottom: calc(var(--s) * 0.018); font-size: max(1.05rem, calc(var(--s) * 0.054)); }
+#options ol + .head { margin-top: calc(var(--s) * 0.04); }
+#ui ol { list-style: none; margin: 0; padding: 0; }
+.pick {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   column-gap: 0.55em;
@@ -147,11 +155,14 @@ button {
   border: 0;
   text-align: left;
 }
-.night .moon { grid-row: 1 / span 2; width: 1.3em; height: 1.3em; }
-.night .name { font-size: max(0.84rem, calc(var(--s) * 0.043)); line-height: 1.15; }
-.night .best { font-size: max(0.64rem, calc(var(--s) * 0.028)); opacity: 0.72; }
-.night .best.done { color: var(--gold); opacity: 1; }
-.night .about {
+.pick .moon { grid-row: 1 / span 2; width: 1.3em; height: 1.3em; }
+.pick .name { font-size: max(0.84rem, calc(var(--s) * 0.043)); line-height: 1.15; }
+.pick .best { font-size: max(0.64rem, calc(var(--s) * 0.028)); opacity: 0.72; }
+.pick .best.done { color: var(--gold); opacity: 1; }
+/* A row with no mark in front of it. */
+.pick.plain { grid-template-columns: minmax(0, 1fr) auto; }
+.pick.plain .about { grid-column: 1 / span 2; }
+.pick .about {
   grid-column: 2 / span 2;
   font-family: "NH Serif", Georgia, serif;
   font-weight: 400;
@@ -160,12 +171,26 @@ button {
   line-height: 1.15;
   opacity: 0.86;
 }
-/* The night you are on is printed the other way round: ink on paper. */
-.night[aria-current="true"] { background: var(--paper); color: var(--blue); }
-.night[aria-current="true"] .best.done { color: inherit; }
-.night[aria-current="true"] .about { opacity: 1; }
-.night:hover, .night:focus-visible { outline: 1.5px solid currentColor; outline-offset: -1.5px; }
+/* What is chosen is printed the other way round: ink on paper. */
+.pick[aria-current="true"] { background: var(--paper); color: var(--blue); }
+.pick[aria-current="true"] .best.done { color: inherit; }
+.pick[aria-current="true"] .about { opacity: 1; }
+.pick:hover, .pick:focus-visible { outline: 1.5px solid currentColor; outline-offset: -1.5px; }
 #nights-note { margin-top: calc(var(--s) * 0.03); }
+#options-done {
+  margin-top: calc(var(--s) * 0.04);
+  padding: 0.5em 0.95em 0.46em;
+  font-size: max(0.8rem, calc(var(--s) * 0.04));
+  border: 2px solid currentColor;
+}
+#options-done:hover, #options-done:focus-visible { background: var(--paper); color: var(--blue); outline: none; }
+/* On a long night the player ends it: a small link under the moon. */
+#dawn {
+  position: absolute;
+  top: calc(8.5% + var(--s) * 0.085);
+  right: calc(var(--s) * 0.05 + env(safe-area-inset-right));
+  margin: 0;
+}
 
 #play { top: 30%; }
 /* The night's name and what it is about, while it begins. */
@@ -183,6 +208,7 @@ button {
   line-height: 1.2;
   color: var(--gold);
 }
+#night .way { font-size: max(0.74rem, calc(var(--s) * 0.036)); line-height: 1.25; opacity: 0.86; }
 #prompt {
   font-family: "NH Serif", Georgia, serif;
   font-weight: 400;
@@ -337,14 +363,23 @@ button {
     <p class="line">Giraffes hum at night.<br>Nobody knows why.</p>
     <button id="start" type="button">Start humming</button>
     <button id="tonight" type="button" class="quiet" aria-label="Choose a night"></button>
+    <button id="setup" type="button" class="quiet" aria-label="Choose the sound and the way to play"></button>
     <p class="note">Uses your mic. Your voice stays on this device.</p>
     <button id="nomic" type="button" class="quiet">Play without a mic</button>
   </section>
   <section id="nights" hidden>
-    <p id="nights-head">Nine nights to wake your voice.</p>
+    <p class="head">Nine nights to wake your voice.</p>
     <ol id="night-list"></ol>
     <p id="nights-note" class="note" hidden></p>
   </section>
+  <section id="options" hidden>
+    <p class="head">The herd's sound.</p>
+    <ol id="sound-list"></ol>
+    <p class="head">The way you play.</p>
+    <ol id="way-list"></ol>
+    <button id="options-done" type="button">Done</button>
+  </section>
+  <button id="dawn" type="button" class="quiet" hidden>Call the dawn</button>
   <section id="play" aria-live="polite">
     <p id="night" hidden></p>
     <p id="prompt" hidden></p>
@@ -844,6 +879,16 @@ const Nights = (() => {
     },
   ];
 
+  // The ways to play any night.
+  // endless  a long night: no clock, and the player calls the dawn
+  // byEar    the rings hide until the hum has found them
+  const WAYS = [
+    { id: 'play', name: 'A night', line: 'Bring them home before dawn.' },
+    { id: 'long', name: 'Long night', line: 'No clock. You call the dawn.', endless: true },
+    { id: 'ear', name: 'By ear', line: 'The rings hide. Listen.', byEar: true },
+  ];
+  const way = (id) => WAYS.find((w) => w.id === id) || WAYS[0];
+
   // A night is done, and the next one offered, once this many calves are home.
   const PASS = 5;
 
@@ -869,7 +914,7 @@ const Nights = (() => {
 
   const done = (result) => !!result && result.home >= PASS;
 
-  return { ALL, PASS, CLASSIC: get('five'), get, index, after, moon, bowls, done };
+  return { ALL, WAYS, PASS, CLASSIC: get('five'), get, way, index, after, moon, bowls, done };
 })();
 
 // One night of Night Hum as a state machine. It is fed "is the player humming,
@@ -900,6 +945,7 @@ const Game = (() => {
     FOUND_AFTER: 0.3,   // seconds dead on before the night's one "Dead on."
     CALL_FIRST: 0.5,    // a new calf calls its note this soon
     CALL_GAP: 5.5,      // and again this often while nobody answers it
+    CALL_EAR: 3.5,      // more often when the rings hide and the ear has to find the note
     CALL_REST: 1.2,     // once the hum leaves a band, the first call waits this long
     CALL_APART: 0.9,    // two waiting calves call this far apart
     CALL_DAWN: 4,       // at dawn her own note calls this often
@@ -931,7 +977,9 @@ const Game = (() => {
   // game had before there were others.
   // `guide` is for a real voice: on a night about breath, the game then says
   // when to breathe in and how long each hum was.
-  const create = ({ seed = 1, fixedHome = null, night = Nights.CLASSIC, guide = true } = {}) => {
+  // `endless` is a long night: no clock, and dawn comes when g.dawn() is called.
+  // `byEar` hides each calf's ring until the hum has found its note.
+  const create = ({ seed = 1, fixedHome = null, night = Nights.CLASSIC, guide = true, endless = false, byEar = false } = {}) => {
     const coach = !!night.breathe && guide;
     const rand = Util.rng(seed);
     const capture = Notes.createHomeCapture();
@@ -959,6 +1007,8 @@ const Game = (() => {
 
     const g = {
       night,
+      endless,
+      byEar,
       state: 'listen',
       home: null,
       homeLevel: 0,
@@ -1042,6 +1092,7 @@ const Game = (() => {
         breaths: 0,       // how many separate breaths have moved it
         breath: -1,       // the last breath that did
         perfect: false,
+        found: !byEar,    // by ear, its ring shows only once the hum has been in its band
         heard: [],        // [cents off its note, seconds] for every frame its band had the light
         cents: null,      // where the hum sat on its note, once it is home
         callIn: K.CALL_FIRST,
@@ -1093,10 +1144,10 @@ const Game = (() => {
       // `offset` names the note (and its bowl). `at` is where it rings.
       const out = waiting().map((c) => ({
         kind: 'calf', id: c.id, offset: c.offset, at: c.at, halfWidth: halfWidth(c), active: c.active, centred: c.centred, bull: c.bull,
-        steady: !!night.steady, slide: c.to !== null,
+        steady: !!night.steady, slide: c.to !== null, hidden: !c.found,
       }));
       if (g.state === 'dawn') {
-        out.push({ kind: 'giraffe', id: 'giraffe', offset: g.giraffe, at: g.giraffe, halfWidth: 1.5, active: her.active, centred: her.centred, bull: her.bull, steady: false, slide: false });
+        out.push({ kind: 'giraffe', id: 'giraffe', offset: g.giraffe, at: g.giraffe, halfWidth: 1.5, active: her.active, centred: her.centred, bull: her.bull, steady: false, slide: false, hidden: false });
       }
       return out;
     };
@@ -1145,15 +1196,22 @@ const Game = (() => {
       if (coach && g.state === 'night' && breath >= K.BREATH_SAY) say(`${Math.floor(breath + 0.05)} seconds.`, K.SAY_SHOW);
     };
 
+    const breakDawn = () => {
+      g.state = 'dawn';
+      g.prompt = 'Their note.';
+      emit({ type: 'dawn' });
+    };
+
+    // Ends the night now. A long night has no clock, so this is its only dawn.
+    g.dawn = () => {
+      if (g.state === 'night') breakDawn();
+    };
+
     // Night and dawn: calves appear, walk while the light is in their band, run
     // while it is dead on their note and sprint while it is in the bullseye. Whoever is not answered calls, and a
     // few words help a player who is lost.
     const play = (dt, voiced) => {
-      if (g.state === 'night' && g.clock.night >= night.seconds) {
-        g.state = 'dawn';
-        g.prompt = 'Their note.';
-        emit({ type: 'dawn' });
-      }
+      if (g.state === 'night' && !endless && g.clock.night >= night.seconds) breakDawn();
 
       if (g.state === 'night') {
         const limit = g.score < 1 ? night.out[0] : g.score < 4 ? night.out[1] : night.out[2];
@@ -1175,6 +1233,10 @@ const Game = (() => {
         // A sliding ring is as far along its way as its calf is.
         if (calf.to !== null) calf.at = calf.from + (calf.to - calf.from) * Math.min(1, calf.progress);
         aim(calf, calf.at, halfWidth(calf), dt);
+        if (calf.active && !calf.found) {
+          calf.found = true;
+          emit({ type: 'found', id: calf.id });
+        }
       }
       if (g.state === 'dawn') aim(her, g.giraffe, 1.5, dt);
 
@@ -1221,7 +1283,7 @@ const Game = (() => {
           if (calf.callIn <= 0) {
             // A slide calls from wherever its ring has got to.
             emit(calf.to === null ? { type: 'call', id: calf.id, offset: calf.offset } : { type: 'call', id: calf.id, offset: calf.offset, at: calf.at });
-            calf.callIn = K.CALL_GAP;
+            calf.callIn = byEar ? K.CALL_EAR : K.CALL_GAP;
           }
         });
       } else if (her.active) {
@@ -1358,18 +1420,186 @@ const Game = (() => {
   return { K, beats, verdict, create };
 })();
 
+// The herd's sounds: four instruments, one from each family. Bowls are struck
+// metal, a kalimba is a plucked tine, a harp a plucked string, a flute is air.
+// Each note is rendered to a buffer of samples with plain arithmetic, so the
+// same code runs in the browser and in the tests. No browser dependencies.
+const Timbre = (() => {
+  // One decaying partial, added into d with a recursive oscillator (no
+  // per-sample trig), so a note renders in a few milliseconds. It comes in
+  // over `attack` seconds.
+  const addPartial = (d, sr, f, phase, amp, tau, attack = 0.003) => {
+    const w = (2 * Math.PI * f) / sr;
+    const c = 2 * Math.cos(w);
+    let y1 = Math.cos(phase - w);
+    let y2 = Math.cos(phase - 2 * w);
+    let env = amp;
+    const k = Math.exp(-1 / (tau * sr));
+    const rise = Math.floor(attack * sr);
+    for (let i = 0; i < d.length; i++) {
+      const y = c * y1 - y2;
+      y2 = y1;
+      y1 = y;
+      d[i] += y * env * (i < rise ? i / rise : 1);
+      env *= k;
+    }
+  };
+
+  // Brings the loudest sample to 0.9 and fades the tail out, so every note
+  // ends in silence however long it would have rung.
+  const finish = (d, sr, fadeSeconds) => {
+    const n = d.length;
+    let peak = 0;
+    for (let i = 0; i < n; i++) if (Math.abs(d[i]) > peak) peak = Math.abs(d[i]);
+    const fade = Math.floor(fadeSeconds * sr);
+    for (let i = 0; i < n; i++) d[i] *= (0.9 / peak) * Math.min(1, (n - i) / fade);
+    return d;
+  };
+
+  // A fingernail on a tine, a fingertip leaving a string: a few milliseconds
+  // of noise with its low end taken out, so it never reaches down to the hum.
+  const click = (d, sr, rand, seconds, amp) => {
+    const len = Math.min(d.length, Math.floor(seconds * sr));
+    let last = 0;
+    for (let i = 0; i < len; i++) {
+      const white = rand() * 2 - 1;
+      d[i] += (white - last) * 0.5 * amp * Math.sin((Math.PI * i) / len);
+      last = white;
+    }
+  };
+
+  // Singing bowl, shared with the giraffe hum reel: five modes, each a slowly
+  // beating pair, and a felt mallet.
+  const MODES = [1, 2.74, 5.13, 8.12, 11.7];
+  const AMPS = [1, 0.55, 0.26, 0.12, 0.05];
+  const TAUS = [7.5, 3.6, 1.9, 1.0, 0.55];
+  const SPLIT = [0.8, 1.8, 2.8, 3.8, 4.6];
+  const bowls = (f0, sr, seed, seconds) => {
+    const n = Math.floor(sr * seconds);
+    const d = new Float32Array(n);
+    const rand = Util.rng(seed);
+    // Small, high bowls ring for less time than big, low ones.
+    const ring = 0.75 * Util.clamp(Math.sqrt(185 / f0), 0.35, 1);
+    for (let k = 0; k < MODES.length; k++) {
+      const f = f0 * MODES[k] * (k ? 1 + (rand() - 0.5) * 0.008 : 1);
+      if (f > sr * 0.45) continue;
+      const beta = k === 0 ? 0.2 : 0.35;
+      const a = AMPS[k] / (1 + beta);
+      addPartial(d, sr, f - SPLIT[k] / 2, rand() * 2 * Math.PI, a, TAUS[k] * ring);
+      addPartial(d, sr, f + SPLIT[k] / 2, rand() * 2 * Math.PI, a * beta, TAUS[k] * ring);
+    }
+    // Felt mallet: a short, soft knock.
+    let lo = 0;
+    let hi = 0;
+    const knock = Math.floor(0.06 * sr);
+    for (let i = 0; i < knock; i++) {
+      const white = rand() * 2 - 1;
+      hi += (white - hi) * 0.25;
+      lo += (white - lo) * 0.05;
+      d[i] += (hi - lo) * 0.12 * Math.exp(-i / (0.007 * sr));
+    }
+    return finish(d, sr, 0.8);
+  };
+
+  // Kalimba: a steel tine held at one end. Its own overtones sit far above
+  // the note (6.27 and 17.5 times it) and are gone in a tenth of a second,
+  // which is the "tink". What is left is nearly a pure tone that dies quickly.
+  const kalimba = (f0, sr, seed, seconds) => {
+    const d = new Float32Array(Math.floor(sr * seconds));
+    const rand = Util.rng(seed);
+    // Short, high tines ring for less time than long, low ones.
+    const ring = Util.clamp(Math.sqrt(560 / f0), 0.5, 1.1);
+    // [times the note, strength, seconds to die away]
+    const parts = [[1, 1, 0.7 * ring], [2, 0.1, 0.3 * ring], [6.27, 0.3, 0.07], [17.5, 0.08, 0.025]];
+    for (const [times, amp, tau] of parts) {
+      if (f0 * times > sr * 0.45) continue;
+      addPartial(d, sr, f0 * times, rand() * 2 * Math.PI, amp, tau, 0.0012);
+    }
+    click(d, sr, rand, 0.004, 0.14);
+    return finish(d, sr, 0.3);
+  };
+
+  // Harp: a string pulled aside a fifth of the way along and let go. Where
+  // it is plucked decides how strong each harmonic is, and the high ones die
+  // first, so the note starts bright and mellows.
+  const harp = (f0, sr, seed, seconds) => {
+    const d = new Float32Array(Math.floor(sr * seconds));
+    const rand = Util.rng(seed);
+    const ring = Util.clamp(Math.sqrt(560 / f0), 0.45, 1.15);
+    const pluck = 0.22;
+    for (let h = 1; h <= 12; h++) {
+      // A real string is a little stiff, so its overtones run slightly sharp.
+      const f = f0 * h * Math.sqrt(1 + 0.00005 * h * h);
+      if (f > sr * 0.45) break;
+      // Let go from rest: every harmonic starts at its widest, together.
+      addPartial(d, sr, f, 0, Math.sin(Math.PI * h * pluck) / h ** 1.4, (1.35 * ring) / (1 + 0.45 * (h - 1)), 0.0015);
+    }
+    click(d, sr, rand, 0.003, 0.1);
+    return finish(d, sr, 0.5);
+  };
+
+  // Flute: four harmonics, a little breath around them, a soft start and a
+  // let-go. The vibrato comes in late and stays shallow.
+  const flute = (f0, sr, seed, seconds) => {
+    const n = Math.floor(sr * seconds);
+    const d = new Float32Array(n);
+    const rand = Util.rng(seed);
+    const strengths = [1, 0.32, 0.12, 0.04];
+    const speak = 0.07;             // seconds for the note to start
+    const hold = seconds - 0.6;     // when the player lets go
+    const gone = seconds - 0.03;    // and when it has died
+    // The breath is noise kept around the note's octave: a two-pole band-pass.
+    const turn = 2 * Math.sin(Math.PI * Math.min(0.2, (2 * f0) / sr));
+    let low = 0;
+    let band = 0;
+    let phase = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / sr;
+      const vibrato = t < 0.25 ? 0 : Math.min(1, (t - 0.25) / 0.4) * 0.0035 * Math.sin(2 * Math.PI * 4.8 * (t - 0.25));
+      phase += (2 * Math.PI * f0 * (1 + vibrato)) / sr;
+      let tone = 0;
+      for (let h = 0; h < strengths.length; h++) tone += strengths[h] * Math.sin((h + 1) * phase);
+      const high = rand() * 2 - 1 - low - 0.7 * band;
+      band += turn * high;
+      low += turn * band;
+      // The breath is loudest as the note starts.
+      const breath = band * (0.05 + 0.2 * Math.exp(-t / 0.035));
+      const rise = t < speak ? 0.5 - 0.5 * Math.cos((Math.PI * t) / speak) : 1;
+      const fall = t < hold ? 1 : t >= gone ? 0 : 0.5 + 0.5 * Math.cos((Math.PI * (t - hold)) / (gone - hold));
+      d[i] = (tone * Math.exp(-Math.max(0, t - speak) / 3.5) + breath) * rise * fall;
+    }
+    return finish(d, sr, 0.02);
+  };
+
+  // gain trims each sound to the loudness of the bowls. seconds is how long
+  // a note of it lasts.
+  const ALL = [
+    { id: 'bowls', name: 'Bowls', line: 'Singing bowls that ring on.', seconds: 6, gain: 1, make: bowls },
+    { id: 'kalimba', name: 'Kalimba', line: 'Thumb piano, warm and short.', seconds: 2.6, gain: 1.05, make: kalimba },
+    { id: 'harp', name: 'Harp', line: 'Plucked strings.', seconds: 4, gain: 1.05, make: harp },
+    { id: 'flute', name: 'Flute', line: 'Soft and breathy.', seconds: 1.7, gain: 0.63, make: flute },
+  ];
+
+  const get = (id) => ALL.find((t) => t.id === id) || ALL[0];
+
+  // One note of a sound at f0 hertz, as samples. `seconds` is only given for
+  // the long bowls of the sunrise.
+  const render = (id, f0, sr, seed, seconds) => {
+    const t = get(id);
+    return t.make(f0, sr, seed, seconds || t.seconds);
+  };
+
+  return { ALL, get, render, BOWL_SPLIT: SPLIT[0] };
+})();
+
 // Sound: the mic chain that hears the hum, the herd's singing bowls, the night
 // bed, the real giraffe hum, and a synthesised hum for playing without a mic.
 // Nothing the mic hears is recorded, kept, sent anywhere or played back.
 const Sound = (() => {
   const SILENT = { voiced: false, freq: 0, level: 0, clarity: 0 };
 
-  // Singing bowl recipe, shared with the giraffe hum reel: five modes, each a
-  // slowly beating pair.
-  const MODES = [1, 2.74, 5.13, 8.12, 11.7];
-  const AMPS = [1, 0.55, 0.26, 0.12, 0.05];
-  const TAUS = [7.5, 3.6, 1.9, 1.0, 0.55];
-  const SPLIT = [0.8, 1.8, 2.8, 3.8, 4.6];
+  // The herd's notes are made in 35-timbre.js, in one of four sounds. This is
+  // how loud a struck one is. Each sound has a trim of its own on top.
   const BOWL_GAIN = 0.34;
   const WET = 0.32;       // how much of the room the bowls ring in
   const NIGHT_GAIN = 1;   // the night bed is a quiet recording: about -39 dBFS at this gain
@@ -1399,8 +1629,11 @@ const Sound = (() => {
   let giraffeBuf = null;
 
   const samples = {};    // decoded ASSETS
-  const bowls = new Map();
+  const bowls = new Map();   // the herd's notes: key -> { buf, gain }
   let bowlJob = 0;
+  let voice = 'bowls';       // the sound they are made in
+  const previews = new Map();
+  let previewing = [];       // the notes of a preview that are still sounding
   let homeHz = 0;        // the player's home note, once it is known
   let nightGain = null;
   let nightTimer = 0;
@@ -1503,7 +1736,8 @@ const Sound = (() => {
 
     api.loaded = Promise.all(Object.keys(ASSETS).map((k) => decode(ASSETS[k]).then((b) => { samples[k] = b; })));
     api.loaded.catch(() => {});
-    GIRAFFE_BOWLS.forEach((hz, i) => queueBowl(`hz:${hz}`, hz, 8, 40 + i));
+    // The sunrise is always bowls, whatever the herd sounds like.
+    GIRAFFE_BOWLS.forEach((hz, i) => queueBowl(`hz:${hz}`, hz, 40 + i, 'bowls', 8));
     return wake();
   };
 
@@ -1640,65 +1874,57 @@ const Sound = (() => {
     for (let i = 0; i < out.length; i++) out[i] = Util.clamp((db[i] - top + 36) / 36, 0, 1);
   };
 
-  // One decaying partial, added into d with a recursive oscillator (no
-  // per-sample trig), so a bowl renders in a few milliseconds.
-  const addPartial = (d, sr, f, phase, amp, tau) => {
-    const w = (2 * Math.PI * f) / sr;
-    const c = 2 * Math.cos(w);
-    let y1 = Math.cos(phase - w);
-    let y2 = Math.cos(phase - 2 * w);
-    let env = amp;
-    const k = Math.exp(-1 / (tau * sr));
-    const attack = Math.floor(0.003 * sr);
-    for (let i = 0; i < d.length; i++) {
-      const y = c * y1 - y2;
-      y2 = y1;
-      y1 = y;
-      d[i] += y * env * (i < attack ? i / attack : 1);
-      env *= k;
-    }
-  };
-
-  const renderBowl = (f0, seconds, seed) => {
-    const sr = ctx.sampleRate;
-    const n = Math.floor(sr * seconds);
-    const buf = ctx.createBuffer(1, n, sr);
-    const d = buf.getChannelData(0);
-    const rand = Util.rng(seed);
-    // Small, high bowls ring for less time than big, low ones.
-    const ring = 0.75 * Util.clamp(Math.sqrt(185 / f0), 0.35, 1);
-    for (let k = 0; k < MODES.length; k++) {
-      const f = f0 * MODES[k] * (k ? 1 + (rand() - 0.5) * 0.008 : 1);
-      if (f > sr * 0.45) continue;
-      const beta = k === 0 ? 0.2 : 0.35;
-      const a = AMPS[k] / (1 + beta);
-      addPartial(d, sr, f - SPLIT[k] / 2, rand() * 2 * Math.PI, a, TAUS[k] * ring);
-      addPartial(d, sr, f + SPLIT[k] / 2, rand() * 2 * Math.PI, a * beta, TAUS[k] * ring);
-    }
-    // Felt mallet: a short, soft knock.
-    let lo = 0;
-    let hi = 0;
-    const knock = Math.floor(0.06 * sr);
-    for (let i = 0; i < knock; i++) {
-      const white = rand() * 2 - 1;
-      hi += (white - hi) * 0.25;
-      lo += (white - lo) * 0.05;
-      d[i] += (hi - lo) * 0.12 * Math.exp(-i / (0.007 * sr));
-    }
-    let peak = 0;
-    for (let i = 0; i < n; i++) if (Math.abs(d[i]) > peak) peak = Math.abs(d[i]);
-    const fade = Math.floor(0.8 * sr);
-    for (let i = 0; i < n; i++) d[i] *= (0.9 / peak) * Math.min(1, (n - i) / fade);
+  // One note of a sound, as a buffer the context can play.
+  const renderNote = (kind, hz, seed, seconds) => {
+    const d = Timbre.render(kind, hz, ctx.sampleRate, seed, seconds);
+    const buf = ctx.createBuffer(1, d.length, ctx.sampleRate);
+    buf.getChannelData(0).set(d);
     return buf;
   };
 
-  // Bowls render one per timer tick, so no frame stalls.
-  const queueBowl = (key, hz, seconds, seed) => {
+  // Notes render one per timer tick, so no frame stalls. `kind` is the sound
+  // they are made in. `seconds` is only given for the long bowls of the sunrise.
+  const queueBowl = (key, hz, seed, kind, seconds) => {
     const job = bowlJob;
     setTimeout(() => {
       if (job !== bowlJob && !key.startsWith('hz:')) return;
-      bowls.set(key, renderBowl(hz, seconds, seed));
+      bowls.set(key, { buf: renderNote(kind, hz, seed, seconds), gain: Timbre.get(kind).gain });
     }, 0);
+  };
+
+  // Which of the four sounds the herd answers in, from the next night on.
+  const setVoice = (id) => {
+    voice = Timbre.get(id).id;
+  };
+
+  // Two notes of a sound, a fifth apart, so it can be chosen by ear. The
+  // context must exist: call init() first, from inside the same tap.
+  const preview = (id) => {
+    if (!ctx) return;
+    const kind = Timbre.get(id);
+    if (!previews.has(kind.id)) previews.set(kind.id, [560, 840].map((hz, i) => renderNote(kind.id, hz, 70 + i)));
+    const now = ctx.currentTime;
+    // The last preview stops, so a bowl does not ring on under a flute.
+    for (const old of previewing) {
+      old.g.gain.cancelScheduledValues(now);
+      old.g.gain.setTargetAtTime(0, now, 0.03);
+      try {
+        old.src.stop(now + 0.25);
+      } catch (err) {
+        // It had already ended.
+      }
+    }
+    previewing = previews.get(kind.id).map((buf, i) => {
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const g = ctx.createGain();
+      g.gain.value = 0.7 * BOWL_GAIN * kind.gain;
+      src.connect(g);
+      g.connect(bus);
+      src.start(now + 0.05 + i * 0.3);
+      keep(src);
+      return { src, g };
+    });
   };
 
   // The player's home note is known: tighten the filters around their voice
@@ -1718,7 +1944,7 @@ const Sound = (() => {
       const key = `${Notes.key(offset)}:${octave}`;
       if (queued.has(key)) return;
       queued.add(key);
-      queueBowl(key, Notes.bowlHz(offset, home, octave), 6, seed++);
+      queueBowl(key, Notes.bowlHz(offset, home, octave), seed++, voice);
     };
     // Low to high, so a note's bowl is the same bowl whatever order the night has it in.
     const low = notes.slice().sort((a, b) => Notes.key(a) - Notes.key(b));
@@ -1745,16 +1971,17 @@ const Sound = (() => {
   const strike = (note, velocity = 0.8, delay = 0, damp = 0) => {
     if (!ctx) return;
     const key = typeof note === 'number' ? `hz:${note}` : `${Notes.key(note.offset)}:${note.bowlOctave}`;
-    const buf = bowls.get(key);
-    if (!buf) return;
+    const bowl = bowls.get(key);
+    if (!bowl) return;
     const when = ctx.currentTime + delay;
     const src = ctx.createBufferSource();
-    src.buffer = buf;
+    src.buffer = bowl.buf;
     if (note.bend) src.playbackRate.value = 2 ** (note.bend / 12);
     const g = ctx.createGain();
-    g.gain.value = velocity * BOWL_GAIN;
+    const level = velocity * BOWL_GAIN * bowl.gain;
+    g.gain.value = level;
     if (damp > 0) {
-      g.gain.setValueAtTime(velocity * BOWL_GAIN, when);
+      g.gain.setValueAtTime(level, when);
       g.gain.setTargetAtTime(0, when + 0.04, damp / 3);
     }
     src.connect(g);
@@ -1813,8 +2040,8 @@ const Sound = (() => {
     if (want === reso.hz) return;
     if (want) {
       // A new note starts on its pitch. It does not slide there from the last one.
-      reso.a.frequency.setValueAtTime(want - SPLIT[0] / 2, t);
-      reso.b.frequency.setValueAtTime(want + SPLIT[0] / 2, t);
+      reso.a.frequency.setValueAtTime(want - Timbre.BOWL_SPLIT / 2, t);
+      reso.b.frequency.setValueAtTime(want + Timbre.BOWL_SPLIT / 2, t);
       reso.top.frequency.setValueAtTime(want * 2, t);
       reso.g.gain.setTargetAtTime(RESO_GAIN, t, 0.16);
     } else {
@@ -2000,11 +2227,12 @@ const Sound = (() => {
   };
 
   return Object.assign(api, {
-    init, startMic, stopMic, read, harmonics, setHome, clearHome, strike, call, flourish, resonate, answer, hush, startNight, stopNight, playGiraffe, touchHum,
+    init, startMic, stopMic, read, harmonics, setHome, clearHome, setVoice, preview, strike, call, flourish, resonate, answer, hush, startNight, stopNight, playGiraffe, touchHum,
     session, asleep, wake, sleep, resume: wake, mute, outputLevel, debug,
     isReady: () => !!ctx,
     hasMic: () => !!detect,
     bowlCount: () => bowls.size,
+    voice: () => voice,
   });
 })();
 
@@ -2323,8 +2551,10 @@ const Art = (() => {
       const gap = 0.082 * s;
       const left = 0.08 * s;
       const perRow = Math.max(4, Math.floor((moon.x - moon.r * 2.4 - left) / gap));
-      const row = Math.floor(i / perRow);
-      const col = i % perRow;
+      // Four rows fill the sky. On a long night later stars land on earlier ones.
+      const slot = i % (perRow * 4);
+      const row = Math.floor(slot / perRow);
+      const col = slot % perRow;
       return {
         x: left + (col + (row % 2) * 0.5) * gap + scatter(i) * 0.02 * s,
         y: 0.038 * h + row * 0.058 * s + scatter(i + 0.5) * 0.024 * s,
@@ -2991,6 +3221,9 @@ const Render = (() => {
         };
 
         for (const target of targets) {
+          // By ear, a note that has not been found has no ring, no thread and
+          // no needle. Its calf still lights up when it calls.
+          if (target.hidden) continue;
           const rings = Notes.rings(target.at);
           const main = Notes.nearestRing(target.at, target.at);
           // Of a note's rings, the one the light is in is the one that grips.
@@ -3110,8 +3343,9 @@ const Render = (() => {
   let lastError = '';
   const finger = { down: false, key: false, slide: 0, st: 0 };
 
-  // ---- what this device remembers: the night you are on, the longest hum,
-  // and a best for every night, one for the mic and one for a finger.
+  // ---- what this device remembers: the night you are on, the herd's sound,
+  // the way you play, the longest hum, and a best for every night, one for
+  // the mic and one for a finger.
   const NIGHT_KEY = 'night-hum.nights';
   const BEST_KEY = 'night-hum.best';   // from when there was one night: its best
   const readMemory = () => {
@@ -3135,6 +3369,8 @@ const Render = (() => {
     if (!kept || typeof kept !== 'object') kept = {};
     const memory = {
       at: Nights.get(kept.at).id,
+      sound: Timbre.get(kept.sound).id,
+      way: Nights.way(kept.way).id,
       longest: Number.isFinite(kept.longest) && kept.longest > 0 ? kept.longest : 0,
       mic: bests(kept.mic),
       touch: bests(kept.touch),
@@ -3156,6 +3392,10 @@ const Render = (() => {
   };
   // The night the start buttons will play.
   let selected = Nights.get(params.get('night') || memory.at);
+  // The sound and the way can be named in the address too.
+  if (params.has('sound')) memory.sound = Timbre.get(params.get('sound')).id;
+  if (params.has('way')) memory.way = Nights.way(params.get('way')).id;
+  let wayNow = Nights.way(memory.way);   // the way the night being played is played
   const tally = (b) => `${b.home} home, ${b.perfect} perfect`;
   const label = (night) => `Night ${Nights.index(night.id) + 1} · ${night.name}`;
   const whole = (seconds) => Math.floor(seconds + 0.05);
@@ -3200,14 +3440,42 @@ const Render = (() => {
     ]);
   };
 
-  // ---- the title and the list of nights
+  // A small note, the mark for the herd's sound.
+  const noteMark = () => draw('svg', { viewBox: '-10 -10 20 20', class: 'moon', 'aria-hidden': 'true' }, [
+    draw('ellipse', { cx: -2.4, cy: 5.2, rx: 3.7, ry: 2.8, transform: 'rotate(-20 -2.4 5.2)', fill: 'currentColor' }),
+    draw('path', { d: 'M0.9 4.6V-8c3 1.1 5.1 2.9 5.3 6.2', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.7, 'stroke-linecap': 'round' }),
+  ]);
+
+  // ---- the title, the list of nights, and the sound and the way
   const show = (id) => {
     $('title').hidden = id !== 'title';
     $('nights').hidden = id !== 'nights';
+    $('options').hidden = id !== 'options';
   };
 
   const drawTonight = () => {
     $('tonight').replaceChildren(moonMark(Nights.moon(selected.id)), span('', label(selected)));
+  };
+
+  const drawSetup = () => {
+    $('setup').replaceChildren(noteMark(), span('', `${Timbre.get(memory.sound).name} \u00b7 ${Nights.way(memory.way).name}`));
+  };
+
+  // One row of a list of choices: a name, a line about it, and the one that
+  // is chosen printed the other way round.
+  const pickRow = ({ name, line, current, mark, note, noteDone, pick }) => {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = mark ? 'pick' : 'pick plain';
+    if (current) row.setAttribute('aria-current', 'true');
+    if (mark) row.append(mark);
+    row.append(span('name', name));
+    if (note) row.append(span(noteDone ? 'best done' : 'best', note));
+    row.append(span('about', line));
+    row.addEventListener('click', pick);
+    const item = document.createElement('li');
+    item.append(row);
+    return item;
   };
 
   const choose = (id) => {
@@ -3221,17 +3489,15 @@ const Render = (() => {
   const openNights = () => {
     $('night-list').replaceChildren(...Nights.ALL.map((night) => {
       const best = memory.mic[night.id] || memory.touch[night.id];
-      const row = document.createElement('button');
-      row.type = 'button';
-      row.className = 'night';
-      if (night === selected) row.setAttribute('aria-current', 'true');
-      row.append(moonMark(Nights.moon(night.id)), span('name', night.name));
-      if (best) row.append(span(Nights.done(best) ? 'best done' : 'best', `${best.home} home`));
-      row.append(span('about', night.line));
-      row.addEventListener('click', () => choose(night.id));
-      const item = document.createElement('li');
-      item.append(row);
-      return item;
+      return pickRow({
+        name: night.name,
+        line: night.line,
+        current: night === selected,
+        mark: moonMark(Nights.moon(night.id)),
+        note: best ? `${best.home} home` : '',
+        noteDone: Nights.done(best),
+        pick: () => choose(night.id),
+      });
     }));
     const kept = memory.longest >= 3 ? `Your longest hum: ${whole(memory.longest)} seconds.` : '';
     $('nights-note').hidden = !kept;
@@ -3239,20 +3505,69 @@ const Render = (() => {
     show('nights');
   };
 
-  // The night's name and what it is about, shown while a night begins.
+  // The herd's sound and the way to play. A sound is chosen by ear: picking
+  // one plays two notes of it.
+  const openOptions = () => {
+    $('sound-list').replaceChildren(...Timbre.ALL.map((t) => pickRow({
+      name: t.name, line: t.line, current: t.id === memory.sound, pick: () => chooseSound(t.id),
+    })));
+    $('way-list').replaceChildren(...Nights.WAYS.map((w) => pickRow({
+      name: w.name, line: w.line, current: w.id === memory.way, pick: () => chooseWay(w.id),
+    })));
+    show('options');
+  };
+
+  const chooseSound = (id, hear = true) => {
+    memory.sound = Timbre.get(id).id;
+    saveMemory();
+    drawSetup();
+    if ($('title').hidden) openOptions();
+    if (!hear) return;
+    try {
+      // The sound has to start inside this tap. Without the mic open, an
+      // iPhone would otherwise mute it with its ring/silent switch.
+      if (!Sound.hasMic()) Sound.session('playback');
+      Sound.init();
+      if (params.has('mute')) Sound.mute(true);
+      Sound.preview(memory.sound);
+    } catch (err) {
+      // No sound is no reason not to choose one.
+    }
+  };
+
+  const chooseWay = (id) => {
+    memory.way = Nights.way(id).id;
+    saveMemory();
+    drawSetup();
+    if ($('title').hidden) openOptions();
+  };
+
+  // The night's name and what it is about, shown while a night begins. A way
+  // of playing other than the usual one says what it changes.
   const sayNight = (night) => {
     const el = $('night');
-    const next = night ? night.id : '';
+    const next = night ? `${night.id} ${wayNow.id}` : '';
     if (el.dataset.said === next) return;
     el.dataset.said = next;
     el.hidden = !night;
-    if (night) el.replaceChildren(span('name', label(night)), span('about', night.line));
+    if (!night) return;
+    el.replaceChildren(span('name', label(night)), span('about', night.line));
+    if (wayNow.id !== 'play') el.append(span('way', wayNow.line));
   };
 
   const newNight = (how) => {
     mode = how;
+    wayNow = Nights.way(memory.way);
+    Sound.setVoice(memory.sound);
     // The coaching on the night about breath is for a real voice.
-    game = Game.create({ seed, fixedHome: how === 'touch' ? Game.K.TOUCH_HOME : null, night: selected, guide: how === 'mic' });
+    game = Game.create({
+      seed,
+      fixedHome: how === 'touch' ? Game.K.TOUCH_HOME : null,
+      night: selected,
+      guide: how === 'mic',
+      endless: !!wayNow.endless,
+      byEar: !!wayNow.byEar,
+    });
     seed += 1;
     heard = false;
     touched = false;
@@ -3267,6 +3582,7 @@ const Render = (() => {
     show(null);
     $('end').hidden = true;
     $('escape').hidden = true;
+    $('dawn').hidden = true;
     Sound.startNight();
   };
 
@@ -3281,6 +3597,7 @@ const Render = (() => {
     sayNight(null);
     $('end').hidden = true;
     $('escape').hidden = true;
+    $('dawn').hidden = true;
     openNights();
   };
 
@@ -3384,16 +3701,20 @@ const Render = (() => {
     $('end-breath').hidden = !breath;
     $('end-breath').textContent = breath;
 
+    // A long night keeps no best: with no clock there is nothing to beat.
     const result = { home: game.score, perfect: game.perfect };
     const before = memory[mode][night.id];
-    let line = '';
-    if (Game.beats(result, before)) {
-      memory[mode][night.id] = result;
-      if (before) line = 'A new best.';
-    } else if (before && game.score > 0) {
-      line = `Best: ${tally(before)}.`;
+    const corner = [label(night)];
+    if (wayNow.id !== 'play') corner.push(wayNow.name);
+    if (!game.endless) {
+      if (Game.beats(result, before)) {
+        memory[mode][night.id] = result;
+        if (before) corner.push('A new best.');
+      } else if (before && game.score > 0) {
+        corner.push(`Best: ${tally(before)}.`);
+      }
     }
-    $('end-best').textContent = line ? `${label(night)}\n${line}` : label(night);
+    $('end-best').textContent = corner.join('\n');
 
     // Enough calves home, and the next night is offered.
     const next = Nights.after(night.id);
@@ -3423,6 +3744,9 @@ const Render = (() => {
       const bend = e.at === undefined ? 0 : Notes.off(e.at, Notes.pitch(e.offset));
       Sound.call({ offset: e.offset, bowlOctave: 0, bend });
       r.ring(e.id, clock);
+    } else if (e.type === 'found') {
+      // By ear: the note is found, and its ring shows itself.
+      r.ring(e.id, clock);
     } else if (e.type === 'answer') {
       // The herd answers: the twelve most recent arrivals, one after another.
       Sound.answer(e.notes.slice(-12));
@@ -3446,6 +3770,8 @@ const Render = (() => {
     const stuck = mode === 'mic' && game.state === 'listen';
     say($('sub'), !playing ? '' : stuck && game.clock.listen > 8 ? 'Any note. Lips closed. Hold it.' : game.hint);
     $('escape').hidden = !(stuck && game.clock.listen > 14 && !heard);
+    // A long night ends when the player says so.
+    $('dawn').hidden = !(game.endless && game.state === 'night');
     // While the real giraffe hums, once the sky behind the words is light.
     const morning = game.state === 'sunrise' && game.clock.sunrise >= 3.4;
     say($('morning'), !morning ? '' : `${mode === 'mic' ? `You hum at ${Math.round(game.home)} Hz. Giraffes hum at 92.\n` : ''}Nobody knows why they hum.`);
@@ -3520,7 +3846,7 @@ const Render = (() => {
     const d = Sound.debug();
     const yn = (v) => (v === undefined || v === null ? '?' : v ? 'on' : 'off');
     readout.textContent = [
-      `${mode} | ${game ? `${game.night.id} ${game.state}` : `title (${selected.id})`} | ${fps} fps`,
+      `${mode} | ${game ? `${game.night.id} ${game.state}` : `title (${selected.id})`} | ${memory.sound}, ${(game ? wayNow : Nights.way(memory.way)).id} | ${fps} fps`,
       `sound ${d.context} ${d.rate} Hz | session ${d.session}`,
       `mic ${d.mic} | echo ${yn(d.echo)} noise ${yn(d.noise)} agc ${yn(d.agc)}${d.micRate ? ` | ${d.micRate} Hz` : ''}`,
       `level ${input.level.toFixed(4)} | floor ${d.floor.toFixed(4)} | gate ${d.gate.toFixed(4)}`,
@@ -3594,6 +3920,11 @@ const Render = (() => {
   $('nomic').addEventListener('click', () => begin(false));
   $('escape').addEventListener('click', () => begin(false));
   $('tonight').addEventListener('click', openNights);
+  $('setup').addEventListener('click', openOptions);
+  $('options-done').addEventListener('click', () => show('title'));
+  $('dawn').addEventListener('click', () => {
+    if (game) game.dawn();
+  });
   // The end card's main button plays the night that showEnd chose: the next
   // one once enough calves are home, the same one otherwise.
   $('again').addEventListener('click', () => newNight(mode));
@@ -3646,7 +3977,11 @@ const Render = (() => {
         state: game ? game.state : 'title',
         night: (game ? game.night : selected).id,
         selected: selected.id,
-        screen: !$('title').hidden ? 'title' : !$('nights').hidden ? 'nights' : !$('end').hidden ? 'end' : 'play',
+        sound: memory.sound,
+        way: (game ? wayNow : Nights.way(memory.way)).id,
+        screen: !$('title').hidden ? 'title' : !$('nights').hidden ? 'nights' : !$('options').hidden ? 'options' : !$('end').hidden ? 'end' : 'play',
+        hiddenRings: game ? game.targets().filter((t) => t.hidden).length : 0,
+        dawnLink: !$('dawn').hidden,
         home: game ? game.home : null,
         score: game ? game.score : 0,
         perfect: game ? game.perfect : 0,
@@ -3686,10 +4021,18 @@ const Render = (() => {
     night(id) {
       choose(id);
     },
+    // The same for the herd's sound (without playing it) and the way to play.
+    sound(id) {
+      chooseSound(id, false);
+    },
+    way(id) {
+      chooseWay(id);
+    },
     fit,
   };
 
   drawTonight();
+  drawSetup();
   r.seed = seed;
   fit();
   lastFrame = performance.now();
