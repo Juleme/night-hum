@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1D2B6B">
-<meta name="description" content="Giraffes hum at night. Nobody knows why. Hum into your mic and bring the calves home.">
+<meta name="description" content="Giraffes hum at night. Nobody knows why. Hum into your mic, bring the calves home, and wake your voice one night at a time.">
 <link rel="icon" href="data:,">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Night Hum">
@@ -104,7 +104,85 @@ button {
 }
 .quiet:hover, .quiet:focus-visible { color: var(--gold); outline: none; }
 
+/* A night's moon, as a mark beside its name. */
+.moon { flex: none; width: 1.2em; height: 1.2em; }
+/* Which night the start button plays. It opens the list of nights. */
+#tonight {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  margin-top: calc(var(--s) * 0.04);
+  font-size: max(0.8rem, calc(var(--s) * 0.04));
+}
+
+/* The nine nights. On the title there is no herd, so the list can run down
+   past the hills. On a screen too short for it, it scrolls. */
+#ui #nights {
+  top: 27.5%;
+  bottom: 0.4rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  pointer-events: auto;
+}
+#nights::-webkit-scrollbar { display: none; }
+#nights-head {
+  margin-bottom: calc(var(--s) * 0.028);
+  font-family: "NH Serif", Georgia, serif;
+  font-weight: 400;
+  font-style: italic;
+  font-size: max(1.2rem, calc(var(--s) * 0.064));
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+  color: var(--gold);
+}
+#night-list { list-style: none; margin: 0; padding: 0; }
+.night {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 0.55em;
+  align-items: center;
+  width: 100%;
+  padding: 0.22em 0.4em 0.26em;
+  border: 0;
+  text-align: left;
+}
+.night .moon { grid-row: 1 / span 2; width: 1.3em; height: 1.3em; }
+.night .name { font-size: max(0.84rem, calc(var(--s) * 0.043)); line-height: 1.15; }
+.night .best { font-size: max(0.64rem, calc(var(--s) * 0.028)); opacity: 0.72; }
+.night .best.done { color: var(--gold); opacity: 1; }
+.night .about {
+  grid-column: 2 / span 2;
+  font-family: "NH Serif", Georgia, serif;
+  font-weight: 400;
+  font-style: italic;
+  font-size: max(0.74rem, calc(var(--s) * 0.036));
+  line-height: 1.15;
+  opacity: 0.86;
+}
+/* The night you are on is printed the other way round: ink on paper. */
+.night[aria-current="true"] { background: var(--paper); color: var(--blue); }
+.night[aria-current="true"] .best.done { color: inherit; }
+.night[aria-current="true"] .about { opacity: 1; }
+.night:hover, .night:focus-visible { outline: 1.5px solid currentColor; outline-offset: -1.5px; }
+#nights-note { margin-top: calc(var(--s) * 0.03); }
+
 #play { top: 30%; }
+/* The night's name and what it is about, while it begins. */
+#night {
+  margin-bottom: calc(var(--s) * 0.035);
+  animation: rise 0.5s ease-out both;
+}
+#night span { display: block; }
+#night .name { font-size: max(0.74rem, calc(var(--s) * 0.036)); line-height: 1.25; }
+#night .about {
+  font-family: "NH Serif", Georgia, serif;
+  font-weight: 400;
+  font-style: italic;
+  font-size: max(0.84rem, calc(var(--s) * 0.043));
+  line-height: 1.2;
+  color: var(--gold);
+}
 #prompt {
   font-family: "NH Serif", Georgia, serif;
   font-weight: 400;
@@ -125,6 +203,16 @@ button {
   color: var(--gold);
 }
 #prompt, #sub { animation: rise 0.5s ease-out both; }
+/* "Breathe in." fills like a chest: it swells for the four seconds the night waits. */
+#prompt.breathe {
+  transform-origin: 0 70%;
+  animation: inhale 4s cubic-bezier(0.3, 0.1, 0.3, 1) both;
+}
+@keyframes inhale {
+  from { opacity: 0; transform: scale(0.84); }
+  16% { opacity: 1; }
+  to { opacity: 1; transform: scale(1); }
+}
 /* While the real giraffe hums, in the night's ink on the morning sky: the facts the game is built on. */
 #morning {
   position: relative;
@@ -163,7 +251,7 @@ button {
   line-height: 0.8;
   letter-spacing: -0.05em;
 }
-/* The best night so far: small, in the corner above the count's words. */
+/* Which night this was, and its best so far: small, in the corner above the count's words. */
 #end-best {
   position: absolute;
   top: calc(var(--s) * 0.055 + env(safe-area-inset-top));
@@ -171,6 +259,7 @@ button {
   font-size: max(0.72rem, calc(var(--s) * 0.034));
   line-height: 1.2;
   text-align: right;
+  white-space: pre-line;
 }
 #end-more {
   position: absolute;
@@ -196,8 +285,28 @@ button {
   font-size: max(0.8rem, calc(var(--s) * 0.043));
   line-height: 1.22;
 }
-#again { margin-top: calc(var(--s) * 0.038); }
+/* The breath: the longest hum of the night. */
+#end-breath {
+  margin-top: calc(var(--s) * 0.012);
+  font-size: max(0.8rem, calc(var(--s) * 0.043));
+  line-height: 1.22;
+}
+/* What to do next: the main button, and beside it the other ways on from
+   here, one above the other. A row of their own would land on the trees. */
+#end-next { display: flex; align-items: center; gap: 0.85em; margin-top: calc(var(--s) * 0.034); }
+/* On a short screen this row can land on a tree, which is printed in the same
+   ink as the words. The button is a paper label, and the links have a paper edge. */
+#again { margin-top: 0; padding-left: 0.85em; padding-right: 0.85em; white-space: nowrap; background: var(--paper); }
 #again:hover, #again:focus-visible { background: var(--blue); color: var(--paper); outline: none; }
+#end-links { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5em; }
+#end-links .quiet {
+  margin-top: 0;
+  padding: 0.12em 0;
+  white-space: nowrap;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.3em var(--paper);
+}
+#end-links .quiet:hover, #end-links .quiet:focus-visible { color: inherit; border-bottom-width: 3px; }
 #end-credit {
   margin-top: calc(var(--s) * 0.026);
   font-size: max(0.62rem, calc(var(--s) * 0.026));
@@ -210,12 +319,13 @@ button {
 #end-perfect { animation-delay: 0.3s; }
 #end-strip { animation-delay: 0.4s; }
 #end-tune { animation-delay: 0.5s; }
-#again { animation-delay: 0.8s; }
+#end-breath { animation-delay: 0.6s; }
+#end-next { animation-delay: 0.8s; }
 #end-credit { animation-delay: 0.95s; }
 #end-best { animation-delay: 1.1s; }
 
 @media (prefers-reduced-motion: reduce) {
-  #prompt, #sub, #morning, #end-count, #end-best, #end-more > * { animation: none; }
+  #prompt, #prompt.breathe, #sub, #night, #morning, #end-count, #end-best, #end-more > * { animation: none; }
 }
 </style>
 </head>
@@ -226,24 +336,37 @@ button {
     <h1>Night <em>Hum</em></h1>
     <p class="line">Giraffes hum at night.<br>Nobody knows why.</p>
     <button id="start" type="button">Start humming</button>
+    <button id="tonight" type="button" class="quiet" aria-label="Choose a night"></button>
     <p class="note">Uses your mic. Your voice stays on this device.</p>
     <button id="nomic" type="button" class="quiet">Play without a mic</button>
-    <p id="best" class="note" hidden></p>
+  </section>
+  <section id="nights" hidden>
+    <p id="nights-head">Nine nights to wake your voice.</p>
+    <ol id="night-list"></ol>
+    <p id="nights-note" class="note" hidden></p>
   </section>
   <section id="play" aria-live="polite">
+    <p id="night" hidden></p>
     <p id="prompt" hidden></p>
     <p id="sub" hidden></p>
     <p id="morning" hidden></p>
     <button id="escape" type="button" class="quiet" hidden>No sound? Play without a mic</button>
   </section>
   <section id="end" hidden>
-    <p id="end-best" hidden></p>
+    <p id="end-best"></p>
     <p id="end-count"></p>
     <div id="end-more">
       <p id="end-perfect" hidden></p>
       <div id="end-strip" hidden></div>
       <p id="end-tune" hidden></p>
-      <button id="again" type="button">Another night</button>
+      <p id="end-breath" hidden></p>
+      <div id="end-next">
+        <button id="again" type="button">Again</button>
+        <div id="end-links">
+          <button id="end-again" type="button" class="quiet" hidden>Again</button>
+          <button id="end-nights" type="button" class="quiet">All nights</button>
+        </div>
+      </div>
       <p id="end-credit">Giraffe hums: Baotic, Sicks &amp; Stoeger 2015, BMC Research Notes 8:425. CC BY 4.0.</p>
     </div>
   </section>
@@ -492,7 +615,12 @@ const Notes = (() => {
   const ORDER = [0, 4, -3, 7, 2, 9, -5];
 
   // Just ratios per pitch class, so the herd's bowls are in tune with the player.
-  const RATIO = { 0: 1, 2: 9 / 8, 4: 5 / 4, 7: 3 / 2, 9: 5 / 3 };
+  // The first five are the notes of the original night. The rest are for the
+  // nights that came later: every one of the twelve has a pure interval.
+  const RATIO = {
+    0: 1, 2: 9 / 8, 4: 5 / 4, 7: 3 / 2, 9: 5 / 3,
+    1: 16 / 15, 3: 6 / 5, 5: 4 / 3, 6: 45 / 32, 8: 8 / 5, 10: 9 / 5, 11: 15 / 8,
+  };
 
   const EPS = 1e-9;
 
@@ -531,6 +659,10 @@ const Notes = (() => {
   const axisT = (s) => (s - AXIS_LO) / (AXIS_HI - AXIS_LO);
 
   const pc = (offset) => ((offset % 12) + 12) % 12;
+
+  // One name for a note in every octave: its place in the octave, to the cent.
+  // Whole numbers name the twelve pure notes. Anything else names itself.
+  const key = (offset) => Math.round(pc(offset) * 100) % 1200;
 
   // How far a pitch sits from a note, in semitones, with octaves counted as
   // the same note: from just above -6 to 6. Positive is sharp.
@@ -633,8 +765,111 @@ const Notes = (() => {
 
   return {
     AXIS_LO, AXIS_HI, GIRAFFE_HZ, ORDER,
-    st, freq, fold, nearOctave, axisT, pc, off, onBand, follow, rings, nearestRing, giraffeOffset, ratio, pitch, bowlHz, createHomeCapture,
+    st, freq, fold, nearOctave, axisT, pc, key, off, onBand, follow, rings, nearestRing, giraffeOffset, ratio, pitch, bowlHz, createHomeCapture,
   };
+})();
+
+// The nine nights. Each is a set of notes to hum, in the order a voice is
+// warmed up: hold one note, glide, leap a fifth, add the third, then scales.
+// A night is data. The game in 30-game.js plays whichever one it is handed.
+// No browser dependencies.
+const Nights = (() => {
+  // A pure interval, written as semitones above home. Used for the notes a
+  // piano does not have. The twelve it does have are whole numbers, and
+  // Notes.pitch puts each of those on its own pure interval.
+  const pure = (n, d) => 12 * Math.log2(n / d);
+
+  // Rings, in semitones either side of the note: for the first two calves,
+  // for the ones after, and once six are home.
+  const WIDE = [1.5, 1.2, 1.0];
+  // Where notes sit a semitone apart, the rings must not touch: the smallest
+  // pure semitone is 1.117.
+  const NARROW = [0.55, 0.55, 0.5];
+
+  // name    what the night is called
+  // line    one sentence about it
+  // notes   the notes, in the order they first appear. A pair is a slide: the
+  //         ring starts on the first note and moves to the second.
+  // seconds how long the night lasts
+  // widths  see WIDE
+  // out     how many calves can wait at once: before the first is home, before
+  //         four are, and after
+  // steady  calves keep one pace: being dead on does not hurry them
+  // grow    on a steady night, the seconds of hum each calf needs
+  // star    'breath' gives the gold star for a calf brought home on one breath
+  //         instead of one that ran most of the way
+  // breathe the game says "Breathe in." and counts each hum
+  const ALL = [
+    {
+      id: 'home', name: 'Home', line: 'One note. Long, slow breaths.',
+      notes: [0], seconds: 70, widths: [1.5, 1.5, 1.2], out: [1, 1, 1],
+      steady: true, grow: { from: 3, by: 1, to: 15 }, star: 'breath', breathe: true,
+    },
+    {
+      id: 'slides', name: 'Slides', line: 'Glide with the ring.',
+      // Up a fifth and back, down to the fifth below, then an octave between the two fifths.
+      notes: [[0, 7], [7, 0], [0, -5], [-5, 7], [7, -5], [-5, 0]],
+      seconds: 60, widths: [1.5, 1.5, 1.2], out: [1, 1, 1], steady: true,
+    },
+    {
+      id: 'fifths', name: 'Fifths', line: 'Home and its fifth.',
+      notes: [0, 7, -5], seconds: 60, widths: WIDE, out: [1, 2, 2],
+    },
+    {
+      id: 'thirds', name: 'Thirds', line: 'A pure third joins in.',
+      notes: [0, 4, 7, -5], seconds: 60, widths: WIDE, out: [1, 2, 3],
+    },
+    {
+      id: 'five', name: 'Five notes', line: 'Five notes that never clash.',
+      notes: Notes.ORDER, seconds: 75, widths: WIDE, out: [1, 2, 3],
+    },
+    {
+      id: 'seven', name: 'Seven notes', line: 'Do re mi, on pure intervals.',
+      notes: [0, 2, 4, 5, 7, -3, -1], seconds: 75, widths: NARROW, out: [1, 2, 3],
+    },
+    {
+      id: 'hirajoshi', name: 'Hirajoshi', line: 'A Japanese koto tuning.',
+      notes: [0, 2, 3, 7, -4, -5], seconds: 75, widths: NARROW, out: [1, 2, 3],
+    },
+    {
+      id: 'hijaz', name: 'Hijaz', line: 'Seven notes, one wide step.',
+      notes: [0, 1, 4, 5, 7, -4, -2], seconds: 75, widths: NARROW, out: [1, 2, 3],
+    },
+    {
+      id: 'overtones', name: 'Overtones', line: 'The notes inside every hum.',
+      // Harmonics 3, 5, 7, 9, 11, 13 and 15 of the home note, each in the
+      // octave nearest home. Three of them fall between a piano's keys.
+      notes: [0, 7, 4, pure(7, 4) - 12, 2, pure(11, 8), pure(13, 8) - 12, -1],
+      seconds: 75, widths: NARROW, out: [1, 2, 3],
+    },
+  ];
+
+  // A night is done, and the next one offered, once this many calves are home.
+  const PASS = 5;
+
+  const get = (id) => ALL.find((n) => n.id === id) || ALL[0];
+  const index = (id) => ALL.indexOf(get(id));
+  const after = (id) => ALL[index(id) + 1] || null;
+
+  // How much of the moon is lit on a night: a thin crescent on the first,
+  // full on the last.
+  const moon = (id) => 0.12 + (0.88 * index(id)) / (ALL.length - 1);
+
+  // Every note a night's bowls must be able to ring, once each: its notes,
+  // and both ends of its slides.
+  const bowls = (night) => {
+    const seen = new Set();
+    return night.notes.flat().filter((n) => {
+      const k = Notes.key(n);
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  };
+
+  const done = (result) => !!result && result.home >= PASS;
+
+  return { ALL, PASS, CLASSIC: get('five'), get, index, after, moon, bowls, done };
 })();
 
 // One night of Night Hum as a state machine. It is fed "is the player humming,
@@ -669,6 +904,12 @@ const Game = (() => {
     CALL_APART: 0.9,    // two waiting calves call this far apart
     CALL_DAWN: 4,       // at dawn her own note calls this often
     STRAY: 5,           // seconds for a calf left at sunrise to trot home
+    BREATH_GAP: 0.35,   // a hum that stops for less than this is still the same breath
+    BREATH_MIN: 1.5,    // a hum this long has earned an in-breath
+    INHALE: 4,          // seconds of silence after it that are free: the night waits
+    BREATH_SAY: 3,      // on the night about breath, a hum this long is counted out loud
+    SAY_SHOW: 3,        // and its length stays up this long
+    SLIDE: 1.6,         // semitones a second: how fast a sliding ring moves under the hum
     MAX_DT: 0.1,
     TOUCH_HOME: 138.6,
   };
@@ -686,13 +927,25 @@ const Game = (() => {
     return { cents: Math.max(1, Math.round(tuning.within)), lean };
   };
 
-  const create = ({ seed = 1, fixedHome = null } = {}) => {
+  // `night` is one of the nights in 25-nights.js. Left out, it is the night the
+  // game had before there were others.
+  // `guide` is for a real voice: on a night about breath, the game then says
+  // when to breathe in and how long each hum was.
+  const create = ({ seed = 1, fixedHome = null, night = Nights.CLASSIC, guide = true } = {}) => {
+    const coach = !!night.breathe && guide;
     const rand = Util.rng(seed);
     const capture = Notes.createHomeCapture();
+    // On a night of slides the notes are pairs, played round and round in order.
+    const slides = Array.isArray(night.notes[0]);
     let events = [];
     let spawnTimer = K.FIRST_DELAY;
     let nextIndex = 0;
-    let lastPc = -1;
+    let lastKey = -1;       // the note of the calf that appeared last
+    const seen = new Set(); // the notes that have appeared so far
+    let breathId = 0;       // counts the breaths: each hum after a real pause is a new one
+    let breath = 0;         // seconds of hum in the breath that is going, or was last
+    let quiet = Infinity;   // seconds since the hum was last heard
+    let rest = 0;           // seconds of free silence the last real hum has left
     let runLen = 0;       // length of the current unbroken hum
     let runStart = 0;     // its first pitch, the stand-in for home while listening
     let offBand = 0;      // voiced time spent off every band
@@ -705,11 +958,15 @@ const Game = (() => {
     const her = { active: false, centred: false, bull: false, hold: 0, fine: 0, callIn: 1 };
 
     const g = {
+      night,
       state: 'listen',
       home: null,
       homeLevel: 0,
       giraffe: null,      // the giraffe's note as an offset from home
       energy: 0,
+      breath: 0,          // seconds of hum in the breath that is going
+      longest: 0,         // the longest hum of the night, in seconds
+      resting: false,     // the night is waiting while the player breathes in
       score: 0,           // calves home
       perfect: 0,         // how many of them ran most of the way
       held: 0,
@@ -724,7 +981,23 @@ const Game = (() => {
     const emit = (e) => events.push(e);
     const waiting = () => g.calves.filter((c) => c.state === 'waiting');
 
-    const halfWidth = (calf) => (calf.index < 2 ? 1.5 : g.score >= 6 ? 1.0 : 1.2);
+    const halfWidth = (calf) => (calf.index < 2 ? night.widths[0] : g.score >= 6 ? night.widths[2] : night.widths[1]);
+
+    // The next calf's note. A note that is already waiting is passed over, so
+    // every ring on the neck is a different note. Each note appears once, in
+    // the night's order, before any comes back. After that they come at
+    // random, never the same one twice running if there is another.
+    const pick = (index) => {
+      if (slides) return night.notes[index % night.notes.length];
+      const taken = new Set(waiting().map((c) => Notes.key(c.offset)));
+      const free = night.notes.filter((n) => !taken.has(Notes.key(n)));
+      const pool = free.length ? free : night.notes;
+      const fresh = pool.find((n) => !seen.has(n));
+      if (fresh !== undefined) return fresh;
+      const other = pool.filter((n) => Notes.key(n) !== lastKey);
+      const from = other.length ? other : pool;
+      return from[Math.floor(rand() * from.length)];
+    };
 
     const setHome = (home, level) => {
       g.home = home;
@@ -738,21 +1011,26 @@ const Game = (() => {
 
     const spawn = () => {
       const index = nextIndex++;
-      let offset;
-      if (index < Notes.ORDER.length) {
-        offset = Notes.ORDER[index];
-      } else {
-        do {
-          offset = Notes.ORDER[Math.floor(rand() * Notes.ORDER.length)];
-        } while (Notes.pc(offset) === lastPc);
-      }
-      lastPc = Notes.pc(offset);
-      const dist = index === 0 ? K.DIST[0] : index === 1 ? K.DIST[1] : K.DIST[Math.floor(rand() * K.DIST.length)];
+      const note = pick(index);
+      // A slide is named for the note it ends on: that is the bowl it rings.
+      const offset = slides ? note[1] : note;
+      seen.add(note);
+      lastKey = Notes.key(offset);
+      // A slide's ring moves from one note to another as its calf walks.
+      const from = slides ? Notes.pitch(note[0]) : null;
+      const to = slides ? Notes.pitch(note[1]) : null;
+      // A slide takes as long as its ring needs. On a night that grows, each
+      // calf needs a longer hum than the last.
+      const dist = slides ? Math.abs(to - from) / K.SLIDE
+        : night.grow ? Math.min(night.grow.from + night.grow.by * index, night.grow.to)
+        : index === 0 ? K.DIST[0] : index === 1 ? K.DIST[1] : K.DIST[Math.floor(rand() * K.DIST.length)];
       const taken = waiting().map((c) => c.lane);
       const lane = [0, 1, 2].find((l) => !taken.includes(l));
       const calf = {
         id: index + 1, index, offset, dist, lane, progress: 0, state: 'waiting', bowlOctave: 0, homeIndex: -1,
-        at: Notes.pitch(offset), // where its note rings: on its bowl, not on the piano's
+        at: slides ? from : Notes.pitch(offset), // where its note rings: on its bowl, not on the piano's
+        from,             // a slide's first and last note. null for a calf on one note
+        to,
         active: false,    // the light is in its band: it walks
         centred: false,   // the light is dead on its note: it runs
         bull: false,      // the light is in the bullseye: it sprints
@@ -760,6 +1038,9 @@ const Game = (() => {
         hold: 0,
         fine: 0,
         ran: 0,           // the share of the way it has run or sprinted
+        pace: 1,          // how fast it goes: 1 is its walk, 2 a run, 3 a sprint
+        breaths: 0,       // how many separate breaths have moved it
+        breath: -1,       // the last breath that did
         perfect: false,
         heard: [],        // [cents off its note, seconds] for every frame its band had the light
         cents: null,      // where the hum sat on its note, once it is home
@@ -775,14 +1056,16 @@ const Game = (() => {
       calf.active = false;
       calf.centred = false;
       calf.bull = false;
-      calf.perfect = calf.ran >= K.PERFECT;
+      // The star is for running most of the way. On a night about breath it
+      // is for coming home on a single one.
+      calf.perfect = night.star === 'breath' ? calf.breaths === 1 : calf.ran >= K.PERFECT;
       // The middle of everything heard, by time: where the hum sat, whatever
       // the slide into the note looked like. A calf that was only ever moved by
       // hums aimed at other notes has nothing to say.
       calf.cents = calf.heard.length ? Util.wmedian(calf.heard) : null;
       calf.heard = null;
       // The second calf home on a note rings an octave higher: no doubles.
-      calf.bowlOctave = g.herd.filter((c) => Notes.pc(c.offset) === Notes.pc(calf.offset)).length % 2;
+      calf.bowlOctave = g.herd.filter((c) => Notes.key(c.offset) === Notes.key(calf.offset)).length % 2;
       calf.homeIndex = g.herd.length;
       g.herd.push(calf);
       g.score += 1;
@@ -808,9 +1091,12 @@ const Game = (() => {
 
     g.targets = () => {
       // `offset` names the note (and its bowl). `at` is where it rings.
-      const out = waiting().map((c) => ({ kind: 'calf', id: c.id, offset: c.offset, at: c.at, halfWidth: halfWidth(c), active: c.active, centred: c.centred, bull: c.bull }));
+      const out = waiting().map((c) => ({
+        kind: 'calf', id: c.id, offset: c.offset, at: c.at, halfWidth: halfWidth(c), active: c.active, centred: c.centred, bull: c.bull,
+        steady: !!night.steady, slide: c.to !== null,
+      }));
       if (g.state === 'dawn') {
-        out.push({ kind: 'giraffe', id: 'giraffe', offset: g.giraffe, at: g.giraffe, halfWidth: 1.5, active: her.active, centred: her.centred, bull: her.bull });
+        out.push({ kind: 'giraffe', id: 'giraffe', offset: g.giraffe, at: g.giraffe, halfWidth: 1.5, active: her.active, centred: her.centred, bull: her.bull, steady: false, slide: false });
       }
       return out;
     };
@@ -848,23 +1134,29 @@ const Game = (() => {
       thing.bull = thing.centred && thing.fine > 0;
     };
 
-    const say = (words) => {
+    const say = (words, seconds = K.HINT_SHOW) => {
       g.hint = words;
-      hintLeft = K.HINT_SHOW;
+      hintLeft = seconds;
+    };
+
+    // A breath is over once the hum has been gone for longer than a crack in
+    // the voice lasts.
+    const endBreath = () => {
+      if (coach && g.state === 'night' && breath >= K.BREATH_SAY) say(`${Math.floor(breath + 0.05)} seconds.`, K.SAY_SHOW);
     };
 
     // Night and dawn: calves appear, walk while the light is in their band, run
     // while it is dead on their note and sprint while it is in the bullseye. Whoever is not answered calls, and a
     // few words help a player who is lost.
     const play = (dt, voiced) => {
-      if (g.state === 'night' && g.clock.night >= K.NIGHT) {
+      if (g.state === 'night' && g.clock.night >= night.seconds) {
         g.state = 'dawn';
         g.prompt = 'Their note.';
         emit({ type: 'dawn' });
       }
 
       if (g.state === 'night') {
-        const limit = g.score < 1 ? 1 : g.score < 4 ? 2 : 3;
+        const limit = g.score < 1 ? night.out[0] : g.score < 4 ? night.out[1] : night.out[2];
         if (waiting().length < limit) {
           spawnTimer -= dt;
           if (spawnTimer <= 0) {
@@ -876,9 +1168,14 @@ const Game = (() => {
         }
       }
 
-      const speed = 0.7 + 0.6 * g.energy;
+      // On a steady night a calf's distance is exactly the seconds of hum it needs.
+      const speed = night.steady ? 1 : 0.7 + 0.6 * g.energy;
       const out = waiting();   // the calves still out in the dark
-      for (const calf of out) aim(calf, calf.at, halfWidth(calf), dt);
+      for (const calf of out) {
+        // A sliding ring is as far along its way as its calf is.
+        if (calf.to !== null) calf.at = calf.from + (calf.to - calf.from) * Math.min(1, calf.progress);
+        aim(calf, calf.at, halfWidth(calf), dt);
+      }
       if (g.state === 'dawn') aim(her, g.giraffe, 1.5, dt);
 
       // Of all the notes whose bands have the light, the nearest is the one
@@ -892,10 +1189,16 @@ const Game = (() => {
 
       for (const calf of out) {
         const off = Notes.off(g.light.st, calf.at);
-        if (calf.active && Math.abs(off) <= sung + 1e-6) calf.heard.push([off * 100, dt]);
+        // A slide keeps no record: trailing a moving line is not singing flat.
+        if (calf.to === null && calf.active && Math.abs(off) <= sung + 1e-6) calf.heard.push([off * 100, dt]);
         calf.grace = calf.active ? K.GRACE : Math.max(0, calf.grace - dt);
+        calf.pace = night.steady ? 1 : calf.bull ? K.SPRINT : calf.centred ? K.RUN : 1;
+        if (calf.active && calf.breath !== breathId) {
+          calf.breath = breathId;
+          calf.breaths += 1;
+        }
         if (calf.grace > 0) {
-          const step = (dt * speed * (calf.bull ? K.SPRINT : calf.centred ? K.RUN : 1)) / calf.dist;
+          const step = (dt * speed * calf.pace) / calf.dist;
           calf.progress += step;
           if (calf.centred) calf.ran += step;
           if (calf.progress >= 1) arrive(calf);
@@ -916,7 +1219,8 @@ const Game = (() => {
           }
           calf.callIn -= dt;
           if (calf.callIn <= 0) {
-            emit({ type: 'call', id: calf.id, offset: calf.offset });
+            // A slide calls from wherever its ring has got to.
+            emit(calf.to === null ? { type: 'call', id: calf.id, offset: calf.offset } : { type: 'call', id: calf.id, offset: calf.offset, at: calf.at });
             calf.callIn = K.CALL_GAP;
           }
         });
@@ -986,7 +1290,29 @@ const Game = (() => {
     g.update = (rawDt, input) => {
       const dt = Util.clamp(rawDt, 0, K.MAX_DT);
       const voiced = !!input.voiced && input.freq > 0;
-      if (g.state !== 'end') g.clock[g.state] += dt;
+
+      // A hum after a real pause is a new breath. A crack in the voice is not.
+      if (voiced && (g.state === 'listen' || g.state === 'night' || g.state === 'dawn')) {
+        if (quiet > K.BREATH_GAP) {
+          breathId += 1;
+          breath = 0;
+        }
+        quiet = 0;
+        breath += dt;
+        if (breath > g.longest) g.longest = breath;
+        // A real hum buys an in-breath. A short sound after it does not take it back.
+        if (breath >= K.BREATH_MIN) rest = K.INHALE;
+      } else {
+        if (quiet <= K.BREATH_GAP && quiet + dt > K.BREATH_GAP) endBreath();
+        quiet += dt;
+      }
+      g.breath = quiet <= K.BREATH_GAP ? breath : 0;
+      // The night waits while the player breathes in: after a real hum, a few
+      // seconds of silence cost nothing. Nobody should learn to gasp.
+      g.resting = g.state === 'night' && !voiced && rest > 0;
+      if (g.resting) rest -= dt;
+      if (g.state !== 'end' && !g.resting) g.clock[g.state] += dt;
+      if (g.state === 'night') g.prompt = coach && g.resting && quiet > K.BREATH_GAP ? 'Breathe in.' : null;
 
       if (voiced) {
         if (runLen === 0) runStart = input.freq;
@@ -999,7 +1325,7 @@ const Game = (() => {
       } else {
         g.light.on = false;
       }
-      g.energy = Util.clamp(g.energy + (voiced ? dt / 5 : -dt / 9), 0, 1);
+      g.energy = Util.clamp(g.energy + (voiced ? dt / 5 : g.resting ? 0 : -dt / 9), 0, 1);
 
       if (g.state === 'listen') {
         const got = capture.push(dt, voiced, input.freq, input.level);
@@ -1376,8 +1702,9 @@ const Sound = (() => {
   };
 
   // The player's home note is known: tighten the filters around their voice
-  // and tune the herd's bowls to it.
-  const setHome = (home, level) => {
+  // and tune the herd's bowls to it. `notes` are the night's notes: one bowl
+  // each, in two octaves.
+  const setHome = (home, level, notes = Notes.ORDER) => {
     if (!ctx) return;
     homeHz = home;
     tracker.setRange(home * 2 ** (-9 / 12), home * 2 ** (14 / 12));
@@ -1388,13 +1715,15 @@ const Sound = (() => {
     let seed = 1;
     const queued = new Set();
     const queue = (offset, octave) => {
-      const key = `${Notes.pc(offset)}:${octave}`;
+      const key = `${Notes.key(offset)}:${octave}`;
       if (queued.has(key)) return;
       queued.add(key);
       queueBowl(key, Notes.bowlHz(offset, home, octave), 6, seed++);
     };
+    // Low to high, so a note's bowl is the same bowl whatever order the night has it in.
+    const low = notes.slice().sort((a, b) => Notes.key(a) - Notes.key(b));
     for (const octave of [0, 1]) {
-      for (const p of [0, 2, 4, 7, 9]) queue(p, octave);
+      for (const n of low) queue(n, octave);
     }
     // Her own note too, up in the herd's register, to call the player at dawn.
     queue(Notes.giraffeOffset(home), 0);
@@ -1410,15 +1739,18 @@ const Sound = (() => {
 
   // note is { offset, bowlOctave } for a calf, or a frequency in Hz for the
   // giraffe-key bowls of the sunrise. With `damp`, a finger stops the bowl:
-  // it dies away in about that many seconds instead of ringing on.
+  // it dies away in about that many seconds instead of ringing on. With
+  // `note.bend`, the bowl sounds that many semitones away from its own note:
+  // a sliding ring calls from wherever it has got to.
   const strike = (note, velocity = 0.8, delay = 0, damp = 0) => {
     if (!ctx) return;
-    const key = typeof note === 'number' ? `hz:${note}` : `${Notes.pc(note.offset)}:${note.bowlOctave}`;
+    const key = typeof note === 'number' ? `hz:${note}` : `${Notes.key(note.offset)}:${note.bowlOctave}`;
     const buf = bowls.get(key);
     if (!buf) return;
     const when = ctx.currentTime + delay;
     const src = ctx.createBufferSource();
     src.buffer = buf;
+    if (note.bend) src.playbackRate.value = 2 ** (note.bend / 12);
     const g = ctx.createGain();
     g.gain.value = velocity * BOWL_GAIN;
     if (damp > 0) {
@@ -1947,20 +2279,25 @@ const Art = (() => {
       marks.push({ x: rand() * w, y: Util.lerp(horizon + 0.025 * h, h, depth), k: Util.lerp(0.35, 1, depth) * 0.02 * s, lean: rand() - 0.5, flower: rand() < 0.22 });
     }
 
+    // The moon's place. Its phase changes with the night, so the renderer
+    // cuts it out of the night each frame: it is not printed here.
+    const moon = { x: w - 0.16 * s, y: 0.085 * h, r: 0.045 * s };
+
     const stars = [];
     const starCount = Math.round((w * (horizon - 0.075 * h)) / 1900);   // the same density on every screen
     for (let i = 0; i < starCount; i++) {
       const size = rand();
-      stars.push({
+      const star = {
         x: rand() * w,
         y: Util.lerp(0.012 * h, horizon - 0.075 * h, Math.pow(rand(), 1.25)),
         r: (size < 0.62 ? 0.8 : size < 0.92 ? 1.25 : 1.9) * Math.max(1, s / 420),
         phase: rand() * TAU,
         speed: Util.lerp(0.7, 2.2, rand()),
         cross: size > 0.955,
-      });
+      };
+      // No star shines through the moon, whichever part of it is dark tonight.
+      if (Math.hypot(star.x - moon.x, star.y - moon.y) > moon.r * 1.6) stars.push(star);
     }
-    const moon = { x: w - 0.16 * s, y: 0.085 * h, r: 0.045 * s };
     const sun = { x: Math.max(0.72 * w, w - 0.6 * s), r: 0.115 * s };
 
     const calfHeight = (y) => 0.21 * s * Util.lerp(0.42, 1, Util.clamp((y - horizon) / (0.965 * h - horizon), 0, 1));
@@ -2051,7 +2388,7 @@ const Art = (() => {
     lit.c.fillStyle = INK.deep;
     lit.c.fill(trees);
 
-    // The night: a flood of blue, with the stars and moon left as bare paper.
+    // The night: a flood of blue, with the stars left as bare paper.
     const night = layer();
     night.c.fillStyle = INK.blue;
     night.c.fillRect(0, 0, w, h);
@@ -2067,13 +2404,6 @@ const Art = (() => {
         night.c.fillRect(st.x - 0.35, st.y - st.r * 3.2, 0.7, st.r * 6.4);
       }
     }
-    night.c.beginPath();
-    night.c.arc(moon.x, moon.y, moon.r, 0, TAU);
-    night.c.fill();
-    night.c.fillStyle = INK.blue;
-    night.c.beginPath();
-    night.c.arc(moon.x + moon.r * 0.42, moon.y - moon.r * 0.14, moon.r * 0.94, 0, TAU);
-    night.c.fill();
     night.c.fillStyle = rgba(INK.deep, 0.55);
     night.c.fill(hills.far);
     night.c.fillStyle = INK.deep;
@@ -2094,10 +2424,27 @@ const Art = (() => {
     };
   };
 
+  // The lit part of the moon as a path: a disc of radius r around (x, y), of
+  // which the share `lit` shows. 0 is a new moon, 0.5 a half, 1 full. The lit
+  // edge is the round one. The other is the shadow's edge, half an ellipse
+  // that flattens to a line at the half moon and bulges out past it.
+  const MOON_TILT = Math.atan2(0.14, -0.42);   // the lit side faces left and a little down
+  const moonPath = (c, x, y, r, lit) => {
+    const k = Util.clamp(2 * lit - 1, -1, 1);
+    c.save();
+    c.translate(x, y);
+    c.rotate(MOON_TILT);
+    c.beginPath();
+    c.arc(0, 0, r, -Math.PI / 2, Math.PI / 2);
+    c.ellipse(0, 0, Math.max(0.002, Math.abs(k)) * r, r, 0, Math.PI / 2, k < 0 ? -Math.PI / 2 : 1.5 * Math.PI, k < 0);
+    c.closePath();
+    c.restore();
+  };
+
   // A screen y mapped onto the neck: 0 at the shoulder, 1 at the throat.
   const touchT = (scene, y) => Util.clamp((scene.neck.base.y - y) / (scene.neck.base.y - scene.neck.throat.y), 0, 1);
 
-  return { INK, TAU, rgba, poly, blob, build, touchT, calfPath, makeGrain, CALF_EYE, CALF_NECK, CALF_HEAD };
+  return { INK, TAU, MOON_TILT, rgba, poly, blob, build, touchT, moonPath, calfPath, makeGrain, CALF_EYE, CALF_NECK, CALF_HEAD };
 })();
 
 // Draws one frame. The lit world goes down first. The night goes over it with
@@ -2266,6 +2613,10 @@ const Render = (() => {
       wctx.fillStyle = '#000';
       const cell = Math.max(7, Math.round(0.022 * s));
 
+      // The moon is a hole in the night, as full as the night is far along.
+      Art.moonPath(wctx, sc.moon.x, sc.moon.y, sc.moon.r, view.moon === undefined ? 0.3 : view.moon);
+      wctx.fill();
+
       if (g && pool > 0.002) {
         const herd = Math.min(g.herd.length, 12);
         const reach = Util.lerp(0.14 * s, Math.max(1.25 * s, 0.72 * w), Util.smoothstep(0, 1, pool));
@@ -2365,9 +2716,10 @@ const Render = (() => {
           m.last = c.progress;
           m.stride += ((moving ? 1 : 0) - m.stride) * toward(dt, 0.15);
           // Dead on its note, it runs: quicker legs, a longer stride, a lean.
-          m.run += ((moving && c.centred ? 1 : 0) - m.run) * toward(dt, 0.12);
+          // On a steady night it keeps to its walk, and so do its legs.
+          m.run += ((moving && c.pace >= 2 ? 1 : 0) - m.run) * toward(dt, 0.12);
           // In the bullseye it sprints.
-          m.sprint += ((moving && c.bull ? 1 : 0) - m.sprint) * toward(dt, 0.12);
+          m.sprint += ((moving && c.pace >= 3 ? 1 : 0) - m.sprint) * toward(dt, 0.12);
           m.lit += ((c.active ? 1 : 0) - m.lit) * toward(dt, 0.12);
           if (!calm) m.phase += dt * 9.5 * m.stride * (1 + 0.8 * m.run + 0.7 * m.sprint);
           const a = sc.startSpot(c.lane, c.dist, m.rows);
@@ -2655,7 +3007,8 @@ const Render = (() => {
           let cents = tilt.get(target.id) || 0;
           if (target.active) cents += (Notes.off(g.light.st, target.at) * 100 - cents) * toward(dt, 0.07);
           tilt.set(target.id, cents);
-          const pace = b > 0.5 ? 2 : k > 0.5 ? 1 : 0;
+          // The beads on a thread run as fast as the calf does.
+          const pace = target.steady ? 0 : b > 0.5 ? 2 : k > 0.5 ? 1 : 0;
           // A ring shows when its note is called.
           const called = glow.has(target.id) && t >= glow.get(target.id) ? Math.exp(-(t - glow.get(target.id)) / 0.45) : 0;
           if (target.kind === 'giraffe') {
@@ -2757,27 +3110,55 @@ const Render = (() => {
   let lastError = '';
   const finger = { down: false, key: false, slide: 0, st: 0 };
 
-  // The best night is remembered on this device: one for the mic, one for a finger.
-  const BEST_KEY = 'night-hum.best';
-  const readBest = () => {
+  // ---- what this device remembers: the night you are on, the longest hum,
+  // and a best for every night, one for the mic and one for a finger.
+  const NIGHT_KEY = 'night-hum.nights';
+  const BEST_KEY = 'night-hum.best';   // from when there was one night: its best
+  const readMemory = () => {
     const one = (b) => (b && Number.isFinite(b.home) && Number.isFinite(b.perfect) ? { home: b.home, perfect: b.perfect } : null);
+    const bests = (kept) => {
+      const out = {};
+      for (const night of Nights.ALL) {
+        const b = one(kept && kept[night.id]);
+        if (b) out[night.id] = b;
+      }
+      return out;
+    };
+    let kept = null;
+    let old = null;
     try {
-      const all = JSON.parse(localStorage.getItem(BEST_KEY)) || {};
-      return { mic: one(all.mic), touch: one(all.touch) };
+      kept = JSON.parse(localStorage.getItem(NIGHT_KEY));
+      if (!kept) old = JSON.parse(localStorage.getItem(BEST_KEY));
     } catch (err) {
       // Storage is blocked, or holds something that is not ours.
-      return { mic: null, touch: null };
     }
+    if (!kept || typeof kept !== 'object') kept = {};
+    const memory = {
+      at: Nights.get(kept.at).id,
+      longest: Number.isFinite(kept.longest) && kept.longest > 0 ? kept.longest : 0,
+      mic: bests(kept.mic),
+      touch: bests(kept.touch),
+    };
+    // The one night there used to be is now the fifth.
+    for (const how of ['mic', 'touch']) {
+      const b = one(old && old[how]);
+      if (b) memory[how][Nights.CLASSIC.id] = b;
+    }
+    return memory;
   };
-  const best = readBest();
-  const saveBest = () => {
+  const memory = readMemory();
+  const saveMemory = () => {
     try {
-      localStorage.setItem(BEST_KEY, JSON.stringify(best));
+      localStorage.setItem(NIGHT_KEY, JSON.stringify(memory));
     } catch (err) {
       // A private window can refuse. The night still counted.
     }
   };
+  // The night the start buttons will play.
+  let selected = Nights.get(params.get('night') || memory.at);
   const tally = (b) => `${b.home} home, ${b.perfect} perfect`;
+  const label = (night) => `Night ${Nights.index(night.id) + 1} · ${night.name}`;
+  const whole = (seconds) => Math.floor(seconds + 0.05);
 
   // Words on screen. Setting the same words again does nothing, so they do
   // not re-animate every frame.
@@ -2790,9 +3171,88 @@ const Render = (() => {
     el.classList.toggle('long', next.length > 12);
   };
 
+  const SVG = 'http://www.w3.org/2000/svg';
+  const draw = (name, attrs, kids = []) => {
+    const node = document.createElementNS(SVG, name);
+    for (const key of Object.keys(attrs)) node.setAttribute(key, attrs[key]);
+    node.append(...kids);
+    return node;
+  };
+  const span = (cls, text) => {
+    const node = document.createElement('span');
+    node.className = cls;
+    node.textContent = text;
+    return node;
+  };
+
+  // A night's moon as a small mark: the same shape as the one in the sky.
+  const moonMark = (lit) => {
+    const R = 8;
+    const k = Util.clamp(2 * lit - 1, -1, 1);
+    const rx = Math.max(0.02, Math.abs(k) * R).toFixed(2);
+    return draw('svg', { viewBox: '-10 -10 20 20', class: 'moon', 'aria-hidden': 'true' }, [
+      draw('circle', { r: R, fill: 'none', stroke: 'currentColor', 'stroke-width': 1, opacity: 0.4 }),
+      draw('path', {
+        d: `M0 ${-R}A${R} ${R} 0 0 1 0 ${R}A${rx} ${R} 0 0 ${k < 0 ? 0 : 1} 0 ${-R}Z`,
+        fill: 'currentColor',
+        transform: `rotate(${((Art.MOON_TILT * 180) / Math.PI).toFixed(1)})`,
+      }),
+    ]);
+  };
+
+  // ---- the title and the list of nights
+  const show = (id) => {
+    $('title').hidden = id !== 'title';
+    $('nights').hidden = id !== 'nights';
+  };
+
+  const drawTonight = () => {
+    $('tonight').replaceChildren(moonMark(Nights.moon(selected.id)), span('', label(selected)));
+  };
+
+  const choose = (id) => {
+    selected = Nights.get(id);
+    memory.at = selected.id;
+    saveMemory();
+    drawTonight();
+    show('title');
+  };
+
+  const openNights = () => {
+    $('night-list').replaceChildren(...Nights.ALL.map((night) => {
+      const best = memory.mic[night.id] || memory.touch[night.id];
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'night';
+      if (night === selected) row.setAttribute('aria-current', 'true');
+      row.append(moonMark(Nights.moon(night.id)), span('name', night.name));
+      if (best) row.append(span(Nights.done(best) ? 'best done' : 'best', `${best.home} home`));
+      row.append(span('about', night.line));
+      row.addEventListener('click', () => choose(night.id));
+      const item = document.createElement('li');
+      item.append(row);
+      return item;
+    }));
+    const kept = memory.longest >= 3 ? `Your longest hum: ${whole(memory.longest)} seconds.` : '';
+    $('nights-note').hidden = !kept;
+    $('nights-note').textContent = kept;
+    show('nights');
+  };
+
+  // The night's name and what it is about, shown while a night begins.
+  const sayNight = (night) => {
+    const el = $('night');
+    const next = night ? night.id : '';
+    if (el.dataset.said === next) return;
+    el.dataset.said = next;
+    el.hidden = !night;
+    if (night) el.replaceChildren(span('name', label(night)), span('about', night.line));
+  };
+
   const newNight = (how) => {
     mode = how;
-    game = Game.create({ seed, fixedHome: how === 'touch' ? Game.K.TOUCH_HOME : null });
+    // The coaching on the night about breath is for a real voice.
+    game = Game.create({ seed, fixedHome: how === 'touch' ? Game.K.TOUCH_HOME : null, night: selected, guide: how === 'mic' });
     seed += 1;
     heard = false;
     touched = false;
@@ -2804,10 +3264,24 @@ const Render = (() => {
     Sound.hush();
     deafUntil = clock + 0.7;
     if (how === 'mic') Sound.clearHome();
-    $('title').hidden = true;
+    show(null);
     $('end').hidden = true;
     $('escape').hidden = true;
     Sound.startNight();
+  };
+
+  // From the end of a night back to the title, with the list of nights open.
+  const toNights = () => {
+    game = null;
+    mode = 'title';
+    input = SILENT;
+    aimed = null;
+    Sound.hush();
+    for (const id of ['prompt', 'sub', 'morning']) say($(id), '');
+    sayNight(null);
+    $('end').hidden = true;
+    $('escape').hidden = true;
+    openNights();
   };
 
   // Both start buttons land here. The audio context has to be created inside
@@ -2848,41 +3322,33 @@ const Render = (() => {
   // they came home. Above the line is sharp, below is flat, and the pale band
   // is the bullseye. Gold marks came home perfect. A mark more than 50 cents
   // out sits on the edge, hollow.
-  const SVG = 'http://www.w3.org/2000/svg';
   const drawStrip = (el, marks) => {
     const W = 200;
     const H = 36;
     const mid = H / 2;
     const reach = H / 2 - 5;
-    const svg = document.createElementNS(SVG, 'svg');
-    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-    svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', 'How sharp or flat each calf was hummed home.');
-    const add = (name, attrs) => {
-      const node = document.createElementNS(SVG, name);
-      for (const key of Object.keys(attrs)) node.setAttribute(key, attrs[key]);
-      svg.appendChild(node);
-    };
     const bull = ((Game.K.BULL * 100) / 50) * reach;
-    add('rect', { x: 0, y: mid - bull, width: W, height: 2 * bull, fill: 'currentColor', opacity: 0.16 });
-    add('line', { x1: 0, y1: mid, x2: W, y2: mid, stroke: 'currentColor', 'stroke-width': 1.2 });
     const step = Math.min(W / marks.length, 14);
-    const r = Util.clamp(step * 0.34, 1.3, 4.2);
-    marks.forEach((m, i) => {
-      const far = Math.abs(m.cents) > 50;
-      add('circle', {
-        cx: (i + 0.5) * step,
-        cy: mid - Util.clamp(m.cents / 50, -1, 1) * reach,
-        r,
-        fill: far ? 'none' : m.perfect ? 'var(--gold)' : 'currentColor',
-        stroke: 'currentColor',
-        'stroke-width': far || m.perfect ? 1.1 : 0,
-      });
-    });
-    el.replaceChildren(svg);
+    const dot = Util.clamp(step * 0.34, 1.3, 4.2);
+    el.replaceChildren(draw('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'How sharp or flat each calf was hummed home.' }, [
+      draw('rect', { x: 0, y: mid - bull, width: W, height: 2 * bull, fill: 'currentColor', opacity: 0.16 }),
+      draw('line', { x1: 0, y1: mid, x2: W, y2: mid, stroke: 'currentColor', 'stroke-width': 1.2 }),
+      ...marks.map((m, i) => {
+        const far = Math.abs(m.cents) > 50;
+        return draw('circle', {
+          cx: (i + 0.5) * step,
+          cy: mid - Util.clamp(m.cents / 50, -1, 1) * reach,
+          r: dot,
+          fill: far ? 'none' : m.perfect ? 'var(--gold)' : 'currentColor',
+          stroke: 'currentColor',
+          'stroke-width': far || m.perfect ? 1.1 : 0,
+        });
+      }),
+    ]));
   };
 
   const showEnd = () => {
+    const night = game.night;
     const count = $('end-count');
     count.textContent = '';
     if (game.score > 0) {
@@ -2893,8 +3359,10 @@ const Render = (() => {
     } else {
       count.textContent = 'They heard you. Try a longer hum.';
     }
+    // The star means what the night is about.
+    const stars = night.star === 'breath' ? 'on one breath' : 'pitch perfect';
     $('end-perfect').hidden = game.perfect === 0;
-    $('end-perfect').textContent = game.perfect === game.score && game.score > 1 ? 'All pitch perfect.' : `${game.perfect} pitch perfect.`;
+    $('end-perfect').textContent = game.perfect === game.score && game.score > 1 ? `All ${stars}.` : `${game.perfect} ${stars}.`;
     const tuning = game.tuning();
     const said = Game.verdict(tuning);
     $('end-strip').hidden = !said;
@@ -2904,24 +3372,44 @@ const Render = (() => {
       $('end-tune').textContent = `Within ${said.cents} cent${said.cents === 1 ? '' : 's'} on average.${said.lean ? ` You lean ${said.lean}.` : ''}`;
     }
 
-    const night = { home: game.score, perfect: game.perfect };
-    const before = best[mode];
+    // The breath: the longest hum of the night. A finger does not breathe.
+    let breath = '';
+    if (mode === 'mic' && whole(game.longest) >= 3) {
+      breath = `Longest hum: ${whole(game.longest)} seconds.`;
+      if (whole(game.longest) > whole(memory.longest)) {
+        if (memory.longest >= 3) breath += ' Your longest yet.';
+        memory.longest = game.longest;
+      }
+    }
+    $('end-breath').hidden = !breath;
+    $('end-breath').textContent = breath;
+
+    const result = { home: game.score, perfect: game.perfect };
+    const before = memory[mode][night.id];
     let line = '';
-    if (Game.beats(night, before)) {
-      best[mode] = night;
-      saveBest();
-      if (before) line = 'A new best night.';
+    if (Game.beats(result, before)) {
+      memory[mode][night.id] = result;
+      if (before) line = 'A new best.';
     } else if (before && game.score > 0) {
       line = `Best: ${tally(before)}.`;
     }
-    $('end-best').hidden = !line;
-    $('end-best').textContent = line;
+    $('end-best').textContent = line ? `${label(night)}\n${line}` : label(night);
+
+    // Enough calves home, and the next night is offered.
+    const next = Nights.after(night.id);
+    const onward = Nights.done(result) && !!next;
+    selected = onward ? next : night;
+    memory.at = selected.id;
+    saveMemory();
+    drawTonight();
+    $('again').textContent = onward ? 'Next night' : 'Again';
+    $('end-again').hidden = !onward;
     $('end').hidden = false;
   };
 
   const handle = (e) => {
     if (e.type === 'homeSet') {
-      Sound.setHome(e.home, e.level);
+      Sound.setHome(e.home, e.level, Nights.bowls(game.night));
     } else if (e.type === 'home') {
       Sound.strike(e, 0.8);
       r.ring(e.id, clock);
@@ -2931,7 +3419,9 @@ const Render = (() => {
       }
     } else if (e.type === 'call') {
       // A calf calls its note, and its neck and its ring show who is calling.
-      Sound.call({ offset: e.offset, bowlOctave: 0 });
+      // A sliding ring calls from where it is: its bowl, bent to that pitch.
+      const bend = e.at === undefined ? 0 : Notes.off(e.at, Notes.pitch(e.offset));
+      Sound.call({ offset: e.offset, bowlOctave: 0, bend });
       r.ring(e.id, clock);
     } else if (e.type === 'answer') {
       // The herd answers: the twelve most recent arrivals, one after another.
@@ -2948,7 +3438,11 @@ const Render = (() => {
   const words = () => {
     const playing = game.state === 'listen' || game.state === 'night' || game.state === 'dawn';
     const waitingForTouch = mode === 'touch' && !touched && game.state === 'night';
+    // The night says its name while it begins.
+    sayNight(game.state === 'listen' || (game.state === 'night' && game.clock.night < 6) ? game.night : null);
     say($('prompt'), !playing ? '' : waitingForTouch ? 'Slide a finger up the neck.' : game.prompt);
+    // "Breathe in." is set in type that swells for as long as the in-breath is free.
+    $('prompt').classList.toggle('breathe', $('prompt').dataset.said === 'Breathe in.');
     const stuck = mode === 'mic' && game.state === 'listen';
     say($('sub'), !playing ? '' : stuck && game.clock.listen > 8 ? 'Any note. Lips closed. Hold it.' : game.hint);
     $('escape').hidden = !(stuck && game.clock.listen > 14 && !heard);
@@ -2967,6 +3461,7 @@ const Render = (() => {
     if (mode === 'mic' && override === undefined && asleepFor > 0.5 && game.state !== 'end') {
       Sound.wake();
       say($('prompt'), 'Tap once to wake the sound.');
+      $('prompt').classList.remove('breathe');
       say($('sub'), '');
       $('escape').hidden = true;
       input = SILENT;
@@ -2980,16 +3475,18 @@ const Render = (() => {
     words();
     const playing = game.state === 'night' || game.state === 'dawn';
     if (mode === 'touch') Sound.touchHum(input.voiced && playing, input.freq);
-    // Dead on a note, that note's bowl sings along.
+    // Dead on a note, that note's bowl sings along. On a slide it follows the ring.
     aimed = playing ? game.targets().find((t) => t.centred) || null : null;
-    Sound.resonate(aimed ? { offset: aimed.offset, bowlOctave: 0 } : null, !!(aimed && aimed.bull));
+    Sound.resonate(aimed ? { offset: aimed.at, bowlOctave: 0 } : null, !!(aimed && aimed.bull));
   };
 
   const render = () => {
     if (game && game.state === 'sunrise') Sound.harmonics(Notes.GIRAFFE_HZ, rungs, 'giraffe');
     else if (!game || !input.voiced) rungs.fill(0);
     else Sound.harmonics(input.freq, rungs, mode === 'mic' && override === undefined ? 'mic' : 'touch');
-    r.draw({ time: clock, game, harmonics: rungs, level: input.level, mode, reducedMotion: reduced });
+    // The moon is as full as the night is far along: the one being played, or the one chosen.
+    const moon = Nights.moon((game ? game.night : selected).id);
+    r.draw({ time: clock, game, harmonics: rungs, level: input.level, mode, reducedMotion: reduced, moon });
   };
 
   // ---- ?debug: what the device is actually doing, readable on the phone itself
@@ -3023,12 +3520,13 @@ const Render = (() => {
     const d = Sound.debug();
     const yn = (v) => (v === undefined || v === null ? '?' : v ? 'on' : 'off');
     readout.textContent = [
-      `${mode} | ${game ? game.state : 'title'} | ${fps} fps`,
+      `${mode} | ${game ? `${game.night.id} ${game.state}` : `title (${selected.id})`} | ${fps} fps`,
       `sound ${d.context} ${d.rate} Hz | session ${d.session}`,
       `mic ${d.mic} | echo ${yn(d.echo)} noise ${yn(d.noise)} agc ${yn(d.agc)}${d.micRate ? ` | ${d.micRate} Hz` : ''}`,
       `level ${input.level.toFixed(4)} | floor ${d.floor.toFixed(4)} | gate ${d.gate.toFixed(4)}`,
       `clear ${(input.clarity || 0).toFixed(2)} | ${input.freq ? `${input.freq.toFixed(1)} Hz` : 'no pitch'} | ${input.voiced ? 'HUM' : 'quiet'}`,
       `note ${offNote()}${aimed ? (aimed.bull ? ' | BULLSEYE' : ' | DEAD ON') : ''} | ${game ? `${game.score} home, ${game.perfect} perfect` : '-'}`,
+      `hum ${game ? `${game.breath.toFixed(1)} s, longest ${game.longest.toFixed(1)} s${game.resting ? ' | NIGHT WAITS' : ''}` : '-'}`,
       `home ${game && game.home ? game.home.toFixed(1) : '-'} | canvas ${r.scene.w}x${r.scene.h} @${r.scene.dpr} | window ${window.innerWidth}x${window.innerHeight}`,
       lastError ? `error: ${lastError}` : 'no errors',
     ].join('\n');
@@ -3095,7 +3593,18 @@ const Render = (() => {
   $('start').addEventListener('click', () => begin(true));
   $('nomic').addEventListener('click', () => begin(false));
   $('escape').addEventListener('click', () => begin(false));
+  $('tonight').addEventListener('click', openNights);
+  // The end card's main button plays the night that showEnd chose: the next
+  // one once enough calves are home, the same one otherwise.
   $('again').addEventListener('click', () => newNight(mode));
+  $('end-again').addEventListener('click', () => {
+    selected = game.night;
+    memory.at = selected.id;
+    saveMemory();
+    drawTonight();
+    newNight(mode);
+  });
+  $('end-nights').addEventListener('click', toNights);
 
   // Any tap or key wakes paused sound. A phone only allows that from a gesture.
   for (const type of ['pointerdown', 'touchend', 'keydown']) {
@@ -3135,16 +3644,23 @@ const Render = (() => {
       return {
         mode,
         state: game ? game.state : 'title',
+        night: (game ? game.night : selected).id,
+        selected: selected.id,
+        screen: !$('title').hidden ? 'title' : !$('nights').hidden ? 'nights' : !$('end').hidden ? 'end' : 'play',
         home: game ? game.home : null,
         score: game ? game.score : 0,
         perfect: game ? game.perfect : 0,
         deadOn: !!aimed,
         stars: r.stars,
-        best,
-        ended: $('end').hidden ? null : ['end-count', 'end-perfect', 'end-tune', 'end-best'].map(shown),
+        memory,
+        ended: $('end').hidden ? null : ['end-count', 'end-perfect', 'end-tune', 'end-breath', 'end-best', 'again'].map(shown),
         morning: shown('morning'),
+        kicker: shown('night'),
         tuning: game ? game.tuning() : null,
         bullseye: !!(aimed && aimed.bull),
+        breath: game ? game.breath : 0,
+        longest: game ? game.longest : 0,
+        resting: game ? game.resting : false,
         voiced: input.voiced,
         freq: input.freq,
         st: game ? game.light.st : 0,
@@ -3152,7 +3668,7 @@ const Render = (() => {
         sub: shown('sub'),
         hint: game ? game.hint : null,
         energy: game ? game.energy : 0,
-        calves: game ? game.calves.map((c) => ({ offset: c.offset, progress: c.progress, state: c.state, centred: c.centred, perfect: c.perfect })) : [],
+        calves: game ? game.calves.map((c) => ({ offset: c.offset, at: c.at, progress: c.progress, state: c.state, centred: c.centred, perfect: c.perfect, pace: c.pace })) : [],
       };
     },
     // hz above 0 hums, 0 is silence, null hands the input back to the mic or finger.
@@ -3166,12 +3682,14 @@ const Render = (() => {
     seed(n) {
       seed = n;
     },
+    // Chooses the night the start buttons will play, as a tap on its row does.
+    night(id) {
+      choose(id);
+    },
     fit,
   };
 
-  const known = best.mic || best.touch;
-  if (known) say($('best'), `Your best night: ${tally(known)}.`);
-
+  drawTonight();
   r.seed = seed;
   fit();
   lastFrame = performance.now();
